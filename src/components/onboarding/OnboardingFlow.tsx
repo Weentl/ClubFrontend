@@ -1,6 +1,6 @@
 // src/components/onboarding/OnboardingFlow.tsx
 import { useState } from 'react';
-import { Store, MapPin, Target, ArrowRight, ArrowLeft, Plus, Trash } from 'lucide-react';
+import { MapPin, Target, ArrowRight, ArrowLeft, Plus, Trash } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
@@ -10,10 +10,14 @@ interface Club {
   address: string;
 }
 
-interface OnboardingData {
-  businessName: string;
-  productTypes: string[];
+interface MainClub {
+  clubName: string;
   address: string;
+}
+
+interface OnboardingData {
+  productTypes: string[];
+  mainClub: MainClub;
   initialGoal: string;
   clubs: Club[];
 }
@@ -37,23 +41,21 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 export default function OnboardingFlow() {
   const [step, setStep] = useState(1);
   const [data, setData] = useState<OnboardingData>({
-    businessName: '',
     productTypes: [],
-    address: '',
+    mainClub: { clubName: '', address: '' },
     initialGoal: '',
     clubs: [],
   });
 
   const navigate = useNavigate();
-  const { user, updateAuthUser } = useAuth(); // Obtén el usuario autenticado y updateAuthUser del contexto
-  const token = localStorage.getItem('token'); // Obtén el token del almacenamiento local
+  const { updateAuthUser } = useAuth();
+  const token = localStorage.getItem('token');
 
-
-  // Estado para agregar un nuevo club
+  // Estado para agregar un club adicional
   const [clubInput, setClubInput] = useState<Club>({ clubName: '', address: '' });
 
   const handleNext = () => {
-    if (step < 5) setStep(step + 1);
+    if (step < 4) setStep(step + 1);
     else handleSubmit();
   };
 
@@ -63,8 +65,7 @@ export default function OnboardingFlow() {
 
   const handleSubmit = async () => {
     try {
-      const token = localStorage.getItem('token'); // Get token again to be sure
-      console.log("Token being sent:", token); // ADD THIS LINE
+      const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE_URL}/api/auth/onboarding`, {
         method: 'POST',
         headers: {
@@ -89,7 +90,6 @@ export default function OnboardingFlow() {
   const handleSkip = () => {
     toast('Onboarding saltado');
     navigate('/dashboard');
-    // Redirigir al dashboard u otra ruta según la lógica de la aplicación
   };
 
   const addClub = () => {
@@ -109,29 +109,6 @@ export default function OnboardingFlow() {
   const renderStep = () => {
     switch (step) {
       case 1:
-        return (
-          <div className="space-y-6">
-            <div>
-              <label htmlFor="businessName" className="block text-sm font-medium text-gray-700">
-                Nombre del Negocio
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Store className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  id="businessName"
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="Ej: ProteiShop"
-                  value={data.businessName}
-                  onChange={(e) => setData({ ...data, businessName: e.target.value })}
-                />
-              </div>
-            </div>
-          </div>
-        );
-      case 2:
         return (
           <div className="space-y-6">
             <div>
@@ -166,30 +143,42 @@ export default function OnboardingFlow() {
             </div>
           </div>
         );
-      case 3:
+      case 2:
         return (
           <div className="space-y-6">
             <div>
-              <label htmlFor="address" className="block text-sm font-medium text-gray-700">
-                Dirección del Club Principal (Opcional)
+              <label htmlFor="mainClubName" className="block text-sm font-medium text-gray-700">
+                Nombre del Club Principal
               </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <MapPin className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  id="address"
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="Calle, Número, Ciudad"
-                  value={data.address}
-                  onChange={(e) => setData({ ...data, address: e.target.value })}
-                />
-              </div>
+              <input
+                type="text"
+                id="mainClubName"
+                placeholder="Ej: Club Central"
+                value={data.mainClub.clubName}
+                onChange={(e) =>
+                  setData({ ...data, mainClub: { ...data.mainClub, clubName: e.target.value } })
+                }
+                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
+              />
+            </div>
+            <div>
+              <label htmlFor="mainClubAddress" className="block text-sm font-medium text-gray-700">
+                Dirección del Club Principal
+              </label>
+              <input
+                type="text"
+                id="mainClubAddress"
+                placeholder="Calle, Número, Ciudad"
+                value={data.mainClub.address}
+                onChange={(e) =>
+                  setData({ ...data, mainClub: { ...data.mainClub, address: e.target.value } })
+                }
+                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
+              />
             </div>
           </div>
         );
-      case 4:
+      case 3:
         return (
           <div className="space-y-6">
             <div>
@@ -217,12 +206,12 @@ export default function OnboardingFlow() {
             </div>
           </div>
         );
-      case 5:
+      case 4:
         return (
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Agrega tus clubes adicionales (opcional)
+                Agrega tus clubes adicionales (Opcional)
               </label>
               <div className="mt-2 space-y-4">
                 {data.clubs.map((club, index) => (
@@ -279,12 +268,12 @@ export default function OnboardingFlow() {
           <div className="w-full max-w-xs bg-gray-200 rounded-full h-2.5">
             <div
               className="bg-[#2A5C9A] h-2.5 rounded-full"
-              style={{ width: `${(step / 5) * 100}%` }}
+              style={{ width: `${(step / 4) * 100}%` }}
             ></div>
           </div>
         </div>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Paso {step} de 5
+          Paso {step} de 4
         </p>
       </div>
 
@@ -319,7 +308,7 @@ export default function OnboardingFlow() {
                 onClick={handleNext}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-[#2A5C9A] hover:bg-[#1e4474] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                {step === 5 ? '¡Empezar!' : 'Siguiente'}
+                {step === 4 ? '¡Empezar!' : 'Siguiente'}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </button>
             </div>
@@ -329,3 +318,5 @@ export default function OnboardingFlow() {
     </div>
   );
 }
+
+
