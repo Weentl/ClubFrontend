@@ -1,5 +1,3 @@
-// App.tsx
-
 import React from 'react';
 import {
   BrowserRouter as Router,
@@ -12,12 +10,12 @@ import { AuthProvider, useAuth } from './components/auth/AuthContext';
 import LoginForm from './components/auth/LoginForm';
 import RegisterForm from './components/auth/RegisterForm';
 import PasswordReset from './components/auth/PasswordReset';
+import MainLayout from './components/layout/MainLayout';
 import Dashboard from './components/dashboard/Dashboard';
 import OnboardingFlow from './components/onboarding/OnboardingFlow';
 import ProductsPage from './components/products/ProductsPage';
 import InventoryList from './components/inventory/InventoryList';
 import SalesPage from './components/sales/SalesPage';
-
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -37,53 +35,36 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="min-h-screen bg-gray-100">
-          <Routes>
-            <Route path="/login" element={<LoginForm />} />
-            <Route path="/register" element={<RegisterForm />} />
-            <Route path="/reset-password" element={<PasswordReset />} />
-            <Route 
-              path="/dashboard" 
-              element={
-                <PrivateRoute>
-                  <Dashboard />
-                </PrivateRoute>
-              } />
-            <Route 
-              path="/products" 
-              element={
-                <PrivateRoute>
-                  <ProductsPage />
-                </PrivateRoute>
-              } />
-            <Route
-              path="/onboarding"
-              element={
-                <PrivateRoute>
-                  <OnboardingFlow />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/inventory"
-              element={
-                <PrivateRoute>
-                  <InventoryList />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/sales"
-              element={
-                <PrivateRoute>
-                  <SalesPage />
-                </PrivateRoute>
-              }
-            />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-          <Toaster position="top-right" />
-        </div>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/login" element={<LoginForm />} />
+          <Route path="/register" element={<RegisterForm />} />
+          <Route path="/reset-password" element={<PasswordReset />} />
+          
+          {/* Protected routes with sidebar layout */}
+          <Route
+            path="/"
+            element={
+              <PrivateRoute>
+                <MainLayout />
+              </PrivateRoute>
+            }
+          >
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/products" element={<ProductsPage />} />
+            <Route path="/inventory" element={<InventoryList />} />
+            <Route path="/sales" element={<SalesPage />} />
+            <Route index element={<Navigate to="/dashboard" replace />} />
+          </Route>
+          <Route path="/onboarding" element={
+            <PrivateRoute>
+              <OnboardingFlow />
+            </PrivateRoute>
+          } 
+          />
+          
+        </Routes>
+        <Toaster position="top-right" />
       </Router>
     </AuthProvider>
   );

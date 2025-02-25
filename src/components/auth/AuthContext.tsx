@@ -10,8 +10,15 @@ interface User {
   isFirstLogin: boolean; // Add isFirstLogin to the User interface
 }
 
+interface MainClub {
+  id: string;
+  clubName: string;
+  address: string;
+}
+
 interface AuthContextType {
   user: User | null;
+  mainClub: MainClub | null; // Nuevo campo
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (data: {
@@ -38,13 +45,18 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [mainClub, setMainClub] = useState<MainClub | null>(null); // Nuevo estado
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
+    const mainClubStr = localStorage.getItem('mainClub'); // Obtener del localStorage
     if (token && userStr) {
       setUser(JSON.parse(userStr));
+    }
+    if (mainClubStr) {
+      setMainClub(JSON.parse(mainClubStr));
     }
     setLoading(false);
   }, []);
@@ -63,6 +75,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await res.json();
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
+
+      if (data.mainClub) {
+        localStorage.setItem('mainClub', JSON.stringify(data.mainClub));
+        setMainClub(data.mainClub);
+      }
+
       setUser(data.user);
     } catch (error: any) {
       toast.error(error.message);
@@ -109,7 +127,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('mainClub'); // Eliminar club principal
     setUser(null);
+    setMainClub(null);
   };
 
   const requestPasswordReset = async (email: string) => {
@@ -164,6 +184,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
   const value = {
     user,
+    mainClub, // Agregar al contexto
     loading,
     signIn,
     signUp,

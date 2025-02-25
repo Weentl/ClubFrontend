@@ -4,27 +4,22 @@ import { Package, Edit, Trash2 } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-interface Product {
-  id: string;
-  name: string;
-  category: string;
-  type: 'prepared' | 'sealed';
-  description: string;
-  purchase_price: number;
-  sale_price: number;
-  image_url?: string;
-}
-
 export default function ProductList() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+
+  // Recupera el club principal desde el localStorage
+  const storedClub = localStorage.getItem("mainClub");
+  const mainClub = storedClub ? JSON.parse(storedClub) : null;
 
   useEffect(() => {
-    loadProducts();
-  }, []);
+    if (mainClub && mainClub.id) {
+      loadProducts();
+    }
+  }, [mainClub]);
 
   const loadProducts = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/products`);
+      const res = await fetch(`${API_BASE_URL}/api/products?club=${mainClub.id}`);
       if (!res.ok) {
         throw new Error('Error al cargar los productos');
       }
@@ -38,7 +33,7 @@ export default function ProductList() {
   return (
     <div className="bg-white shadow overflow-hidden sm:rounded-md">
       <ul className="divide-y divide-gray-200">
-        {products.map((product) => (
+        {products.map((product: any) => (
           <li key={product.id}>
             <div className="px-4 py-4 flex items-center sm:px-6">
               <div className="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between">

@@ -1,3 +1,4 @@
+// Sales.ts
 export interface SaleItem {
     id: string;
     product_id: string;

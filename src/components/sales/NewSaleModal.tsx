@@ -16,13 +16,19 @@ export default function NewSaleModal({ onClose }: Props) {
   const [selectedItems, setSelectedItems] = useState<SaleItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Recupera el club activo desde el localStorage
+  const storedClub = localStorage.getItem("mainClub");
+  const mainClub = storedClub ? JSON.parse(storedClub) : null;
+
   useEffect(() => {
     loadProducts();
   }, []);
 
   const loadProducts = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/products`);
+      // Se envía el club como query parameter para filtrar los productos
+      const clubQuery = mainClub && mainClub.id ? `?club=${mainClub.id}` : '';
+      const response = await fetch(`${API_BASE_URL}/api/products${clubQuery}`);
       if (!response.ok) throw new Error('Error fetching products');
       const data = await response.json();
       // Mapea _id a id para cada producto
@@ -97,11 +103,16 @@ export default function NewSaleModal({ onClose }: Props) {
   );
 
   const handleSubmit = async () => {
+    if (!mainClub || !mainClub.id) {
+      console.error('No se encontró el club activo.');
+      return;
+    }
     try {
       const saleData = {
         items: selectedItems,
         total,
         status: 'completed',
+        club: mainClub.id, // Se asocia la venta al club activo
       };
 
       const response = await fetch(`${API_BASE_URL}/api/sales`, {
@@ -125,10 +136,7 @@ export default function NewSaleModal({ onClose }: Props) {
           <h3 className="text-lg font-medium">
             {step === 1 ? 'Seleccionar Productos' : 'Confirmar Venta'}
           </h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-500"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
             <X className="h-6 w-6" />
           </button>
         </div>
@@ -243,4 +251,5 @@ export default function NewSaleModal({ onClose }: Props) {
     </div>
   );
 }
+
 

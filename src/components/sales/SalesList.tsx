@@ -12,6 +12,10 @@ export default function SalesList() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'sealed' | 'prepared'>('all');
 
+  // Recupera el club activo desde el localStorage
+  const storedClub = localStorage.getItem("mainClub");
+  const mainClub = storedClub ? JSON.parse(storedClub) : null;
+
   useEffect(() => {
     loadSales();
     loadProducts();
@@ -19,7 +23,9 @@ export default function SalesList() {
 
   const loadSales = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/sales`);
+      // Se agrega el club como query parameter para filtrar las ventas
+      const clubQuery = mainClub && mainClub.id ? `?club=${mainClub.id}` : '';
+      const response = await fetch(`${API_BASE_URL}/api/sales${clubQuery}`);
       if (!response.ok) throw new Error('Error fetching sales');
       const data = await response.json();
       // Mapea cada venta para asignar 'id' desde '_id'
@@ -37,11 +43,12 @@ export default function SalesList() {
 
   const loadProducts = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/products`);
+      // También filtramos productos por club
+      const clubQuery = mainClub && mainClub.id ? `?club=${mainClub.id}` : '';
+      const response = await fetch(`${API_BASE_URL}/api/products${clubQuery}`);
       if (!response.ok) throw new Error('Error fetching products');
       const data = await response.json();
       const productsMap: Record<string, Product> = {};
-      // Aseguramos mapear _id a id si es necesario
       data.forEach((product: any) => {
         productsMap[product._id] = { ...product, id: product._id };
       });
@@ -125,4 +132,5 @@ export default function SalesList() {
     </div>
   );
 }
+
 

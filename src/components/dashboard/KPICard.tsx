@@ -1,4 +1,4 @@
-import React from 'react';
+//KPICard.tsx
 import { DivideIcon as LucideIcon } from 'lucide-react';
 
 interface KPICardProps {

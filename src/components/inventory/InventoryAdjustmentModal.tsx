@@ -21,6 +21,10 @@ const ADJUSTMENT_TYPES = [
 ];
 
 export default function InventoryAdjustmentModal({ item, onClose }: Props) {
+  // Recupera el club principal desde el localStorage
+  const storedClub = localStorage.getItem("mainClub");
+  const mainClub = storedClub ? JSON.parse(storedClub) : null;
+
   const [adjustment, setAdjustment] = useState<InventoryAdjustmentData>({
     quantity: 0,
     type: 'restock',
@@ -32,6 +36,10 @@ export default function InventoryAdjustmentModal({ item, onClose }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!mainClub || !mainClub.id) {
+      console.error('No se encontró el club activo.');
+      return;
+    }
     try {
       const response = await fetch(`${API_BASE_URL}/api/inventory/adjust`, {
         method: 'POST',
@@ -44,6 +52,7 @@ export default function InventoryAdjustmentModal({ item, onClose }: Props) {
           purchase_price: adjustment.purchase_price,
           sale_price: adjustment.sale_price,
           update_catalog_price: adjustment.update_catalog_price,
+          club: mainClub.id, // Se asocia el ajuste al club activo
         }),
       });
 
@@ -197,4 +206,5 @@ export default function InventoryAdjustmentModal({ item, onClose }: Props) {
     </div>
   );
 }
+
 

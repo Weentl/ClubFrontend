@@ -27,8 +27,11 @@ export default function ProductForm() {
     purchasePrice: 0,
     salePrice: 0,
   });
-
   const [imagePreview, setImagePreview] = useState<string>('');
+
+  // Recupera el club principal desde el localStorage
+  const storedClub = localStorage.getItem("mainClub");
+  const mainClub = storedClub ? JSON.parse(storedClub) : null;
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -45,7 +48,7 @@ export default function ProductForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Preparamos los datos en un FormData para soportar subida de archivos
+      // Preparamos los datos en un FormData para soportar la subida de archivos
       const formDataToSend = new FormData();
       formDataToSend.append('name', formData.name);
       const categoryToSend =
@@ -55,6 +58,15 @@ export default function ProductForm() {
       formDataToSend.append('description', formData.description);
       formDataToSend.append('purchase_price', formData.purchasePrice.toString());
       formDataToSend.append('sale_price', formData.salePrice.toString());
+      
+      // Agrega el id del club (del mainClub obtenido desde localStorage)
+      if (mainClub && mainClub.id) {
+        formDataToSend.append('club', mainClub.id);
+      } else {
+        toast.error('No se encontró el club activo');
+        return;
+      }
+
       if (formData.image) {
         formDataToSend.append('image', formData.image);
       }
@@ -294,3 +306,4 @@ export default function ProductForm() {
     </form>
   );
 }
+
