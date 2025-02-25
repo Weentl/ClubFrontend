@@ -15,6 +15,7 @@ import PasswordReset from './components/auth/PasswordReset';
 import Dashboard from './components/dashboard/Dashboard';
 import OnboardingFlow from './components/onboarding/OnboardingFlow';
 import ProductsPage from './components/products/ProductsPage';
+import InventoryList from './components/inventory/InventoryList';
 
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -40,14 +41,34 @@ function App() {
             <Route path="/login" element={<LoginForm />} />
             <Route path="/register" element={<RegisterForm />} />
             <Route path="/reset-password" element={<PasswordReset />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/products" element={<ProductsPage />} />
+            <Route 
+              path="/dashboard" 
+              element={
+                <PrivateRoute>
+                  <Dashboard />
+                </PrivateRoute>
+              } />
+            <Route 
+              path="/products" 
+              element={
+                <PrivateRoute>
+                  <ProductsPage />
+                </PrivateRoute>
+              } />
             <Route
               path="/onboarding"
               element={
-                
+                <PrivateRoute>
                   <OnboardingFlow />
-
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/inventory"
+              element={
+                <PrivateRoute>
+                  <InventoryList />
+                </PrivateRoute>
               }
             />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
