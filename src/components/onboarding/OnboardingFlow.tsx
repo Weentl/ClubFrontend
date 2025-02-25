@@ -1,7 +1,9 @@
 // src/components/onboarding/OnboardingFlow.tsx
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Store, MapPin, Target, ArrowRight, ArrowLeft, Plus, Trash } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
 
 interface Club {
   clubName: string;
@@ -42,6 +44,11 @@ export default function OnboardingFlow() {
     clubs: [],
   });
 
+  const navigate = useNavigate();
+  const { user, updateAuthUser } = useAuth(); // Obtén el usuario autenticado y updateAuthUser del contexto
+  const token = localStorage.getItem('token'); // Obtén el token del almacenamiento local
+
+
   // Estado para agregar un nuevo club
   const [clubInput, setClubInput] = useState<Club>({ clubName: '', address: '' });
 
@@ -56,17 +63,24 @@ export default function OnboardingFlow() {
 
   const handleSubmit = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/onboarding`, {
+      const token = localStorage.getItem('token'); // Get token again to be sure
+      console.log("Token being sent:", token); // ADD THIS LINE
+      const res = await fetch(`${API_BASE_URL}/api/auth/onboarding`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify(data),
       });
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.message || 'Error al enviar onboarding.');
       }
+
       toast.success('Onboarding completado exitosamente.');
-      // Aquí se puede redirigir al dashboard o a otra ruta protegida
+      updateAuthUser({ isFirstLogin: false });
+      navigate('/dashboard');
     } catch (error: any) {
       toast.error(error.message);
     }
@@ -74,6 +88,7 @@ export default function OnboardingFlow() {
 
   const handleSkip = () => {
     toast('Onboarding saltado');
+    navigate('/dashboard');
     // Redirigir al dashboard u otra ruta según la lógica de la aplicación
   };
 

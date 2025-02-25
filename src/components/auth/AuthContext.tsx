@@ -7,6 +7,7 @@ interface User {
   fullName: string;
   email: string;
   businessType: string;
+  isFirstLogin: boolean; // Add isFirstLogin to the User interface
 }
 
 interface AuthContextType {
@@ -27,6 +28,7 @@ interface AuthContextType {
     code: string,
     newPassword: string
   ) => Promise<any>;
+  updateAuthUser: (userData: Partial<User>) => void;
 }
 
 // Usamos import.meta.env para obtener la URL base en Vite
@@ -86,6 +88,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(errorData.message || 'Error al registrar usuario.');
       }
       toast.success('Usuario registrado correctamente. Por favor, inicia sesión.');
+      const data = await res.json();
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      setUser(data.user);
     } catch (error: any) {
       toast.error(error.message);
       throw error;
@@ -149,7 +155,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw error;
     }
   };
-
+  const updateAuthUser = (userData: Partial<User>) => {
+    setUser(currentUser => {
+      const updatedUser = { ...currentUser, ...userData } as User;
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      return updatedUser;
+    });
+  };
   const value = {
     user,
     loading,
@@ -158,6 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut,
     requestPasswordReset,
     resetPassword,
+    updateAuthUser, // Include updateAuthUser in the value
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

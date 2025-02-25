@@ -20,7 +20,8 @@ export default function RegisterForm() {
     e.preventDefault();
     try {
       await signUp(formData);
-      navigate('/login');
+      // Redirigir al onboarding después del registro exitoso, solo la primera vez
+      navigate('/onboarding');
     } catch (error) {
       // El error se maneja en AuthContext
     }
@@ -202,3 +203,4 @@ export default function RegisterForm() {
     </div>
   );
 }
+

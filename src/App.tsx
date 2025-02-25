@@ -16,6 +16,7 @@ import Dashboard from './components/dashboard/Dashboard';
 import OnboardingFlow from './components/onboarding/OnboardingFlow';
 import ProductsPage from './components/products/ProductsPage';
 import InventoryList from './components/inventory/InventoryList';
+import SalesPage from './components/sales/SalesPage';
 
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -68,6 +69,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <InventoryList />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/sales"
+              element={
+                <PrivateRoute>
+                  <SalesPage />
                 </PrivateRoute>
               }
             />
