@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Search, Package, Coffee } from 'lucide-react';
 import type { Product } from '../types/products';
 import type { SaleItem } from '../types/sales';
+import moment from 'moment';
 
 interface Props {
   onClose: () => void;
@@ -113,7 +114,11 @@ export default function NewSaleModal({ onClose }: Props) {
         total,
         status: 'completed',
         club: mainClub.id, // Se asocia la venta al club activo
+        clientTime: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString(),
+        clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone, // Ej.: "America/Mexico_City"
       };
+
+      console.log('Creating sale:', saleData);
 
       const response = await fetch(`${API_BASE_URL}/api/sales`, {
         method: 'POST',

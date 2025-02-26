@@ -1,5 +1,5 @@
 // dashboard.tsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   ShoppingCart,
   AlertTriangle,
@@ -19,11 +19,10 @@ interface Club {
 }
 
 interface User {
-  _id: string;
-  name: string;
+  id: string;
+  fullName: string;
 }
 
-// URL base de la API
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function Dashboard() {
@@ -32,19 +31,26 @@ export default function Dashboard() {
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
   const [kpiData, setKpiData] = useState<any[]>([]);
 
-  // Obtén la información del usuario del localStorage.
-  // Asegúrate de que al iniciar sesión se guarde un objeto JSON con al menos { _id, name }.
-  const storedUser = localStorage.getItem('user');
-  const user: User | null = storedUser ? JSON.parse(storedUser) : null;
+  // Se obtiene la información del usuario del localStorage.
+  const user: User | null = useMemo(() => {
+    const stored = localStorage.getItem('user');
+    return stored ? JSON.parse(stored) : null;
+  }, []);
 
   useEffect(() => {
-    if (user) {
-      fetchClubs(user._id);
+    const storedClub = localStorage.getItem('mainClub');
+    if (storedClub) {
+      setSelectedClub(JSON.parse(storedClub));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user && user.id) {
+      fetchClubs(user.id);
     } else {
       console.error('No se encontró el usuario en localStorage.');
-      // Puedes redirigir a login o mostrar un mensaje.
     }
-  }, [user]);
+  }, [user?.id]);
 
   // Cuando se carguen los clubs, se selecciona el club principal (o el primero)
   useEffect(() => {
@@ -54,9 +60,9 @@ export default function Dashboard() {
     }
   }, [clubs]);
 
-  // Al cambiar el club seleccionado, guárdalo en localStorage y actualiza los KPIs
+  // Al cambiar el club seleccionado, se guarda en localStorage y se actualizan los KPIs
   useEffect(() => {
-    if (selectedClub) {
+    if (selectedClub?._id) {
       localStorage.setItem(
         'mainClub',
         JSON.stringify({
@@ -67,7 +73,7 @@ export default function Dashboard() {
       );
       fetchKPIs(selectedClub._id);
     }
-  }, [selectedClub]);
+  }, [selectedClub?._id]);
 
   const fetchClubs = async (userId: string) => {
     try {
@@ -84,8 +90,12 @@ export default function Dashboard() {
 
   const fetchKPIs = async (clubId: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/dashboard/kpis?club=${clubId}`);
-      if (!response.ok) throw new Error('Error fetching KPIs');
+      // Obtener la zona horaria del cliente
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const response = await fetch(`${API_BASE_URL}/api/dashboard/kpis?club=${clubId}&timezone=${timezone}`);
+      if (!response.ok) {
+        throw new Error('No hay suficientes datos');
+      }
       const data = await response.json();
       const kpis = [
         {
@@ -118,6 +128,33 @@ export default function Dashboard() {
       setKpiData(kpis);
     } catch (error) {
       console.error('Error fetching KPIs:', error);
+      const fallbackKPIs = [
+        {
+          title: 'Ventas Hoy',
+          value: 'No hay suficientes datos',
+          icon: ShoppingCart,
+          color: 'blue',
+        },
+        {
+          title: 'Productos Bajos en Stock',
+          value: 'No hay suficientes datos',
+          icon: AlertTriangle,
+          color: 'yellow',
+        },
+        {
+          title: 'Ganancias Mensuales',
+          value: 'No hay suficientes datos',
+          icon: DollarSign,
+          color: 'green',
+        },
+        {
+          title: 'Clubs Activos',
+          value: 'No hay suficientes datos',
+          icon: Store,
+          color: 'purple',
+        },
+      ];
+      setKpiData(fallbackKPIs);
     }
   };
 
@@ -128,7 +165,7 @@ export default function Dashboard() {
 
   return (
     <div>
-      <Header userName={user ? user.name : 'Usuario'} />
+      <Header userName={user ? user.fullName : 'Usuario'} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Club Selector */}
@@ -194,10 +231,12 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Aquí se pueden incluir otros componentes del dashboard (gráficos, metas, etc.) */}
+        {/* Otros componentes del dashboard */}
       </main>
     </div>
   );
 }
+
+
 
 

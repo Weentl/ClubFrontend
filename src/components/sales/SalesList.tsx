@@ -92,7 +92,7 @@ export default function SalesList() {
                   Venta #{sale.id.slice(0, 8)}
                 </p>
                 <p className="text-sm text-gray-500">
-                  {new Date(sale.created_at).toLocaleString()}
+                    {new Date(sale.created_at).toLocaleDateString('es-ES', { timeZone: 'UTC' })} {new Date(sale.created_at).toLocaleTimeString('es-ES', { timeZone: 'UTC' })}
                 </p>
               </div>
               <div className="text-sm font-medium text-gray-900">
