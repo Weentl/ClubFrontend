@@ -16,6 +16,7 @@ import OnboardingFlow from './components/onboarding/OnboardingFlow';
 import ProductsPage from './components/products/ProductsPage';
 import InventoryList from './components/inventory/InventoryList';
 import SalesPage from './components/sales/SalesPage';
+import ClientsList from './components/clients/ClientsList';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -54,6 +55,7 @@ function App() {
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/inventory" element={<InventoryList />} />
             <Route path="/sales" element={<SalesPage />} />
+            <Route path="/customers" element={<ClientsList />} />
             <Route index element={<Navigate to="/dashboard" replace />} />
           </Route>
           <Route path="/onboarding" element={

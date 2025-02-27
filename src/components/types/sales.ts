@@ -9,9 +9,11 @@ export interface SaleItem {
   }
   
   export interface Sale {
+    _id: string;
     id: string;
     items: SaleItem[];
     total: number;
     created_at: string;
     status: 'completed' | 'pending_inventory_adjustment';
+    client_id?: string; // ID del cliente asociado a la venta
   }
