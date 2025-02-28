@@ -82,6 +82,7 @@ export const api = {
     if (!response.ok) throw new Error("Error al eliminar empleado");
     return response.json();
   },
+  
 };
 
   

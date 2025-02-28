@@ -1,7 +1,7 @@
+// ExpenseFormModal.tsx
 import React, { useState, useRef } from 'react';
 import { X, Calendar, DollarSign, FileText, User, Upload } from 'lucide-react';
 import { Expense, ExpenseFormData } from '../types/expenses';
-import { api } from '../lib/mockData';
 import toast from 'react-hot-toast';
 
 interface Props {
@@ -26,6 +26,9 @@ const SUPPLIERS = [
   'Transportes Rápidos',
 ];
 
+// Definir API_BASE_URL localmente
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
   const [formData, setFormData] = useState<ExpenseFormData>({
     amount: expense?.amount || 0,
@@ -44,7 +47,7 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // In a real app, this would upload the file to a server
+      // Simulación de subida de archivo (en un caso real se subiría al servidor)
       const reader = new FileReader();
       reader.onloadend = () => {
         setReceiptPreview(reader.result as string);
@@ -57,10 +60,8 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
   const handleSupplierChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setFormData({ ...formData, supplier: value });
-    
-    // Simple autocomplete
     if (value.length > 0) {
-      const filtered = SUPPLIERS.filter(supplier => 
+      const filtered = SUPPLIERS.filter(supplier =>
         supplier.toLowerCase().includes(value.toLowerCase())
       );
       setSupplierSuggestions(filtered);
@@ -76,23 +77,53 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
 
   const handleSubmit = async (e: React.FormEvent, saveAndRepeat: boolean = false) => {
     e.preventDefault();
-    
+
     if (formData.amount <= 0) {
       toast.error('El monto debe ser mayor a 0');
       return;
     }
 
     try {
+      // Extraer el club activo desde el localStorage
+      const mainClubStr = localStorage.getItem('mainClub');
+      if (!mainClubStr) {
+        throw new Error('Club no encontrado en localStorage');
+      }
+      const mainClub = JSON.parse(mainClubStr);
+      const clubId = mainClub.id;
+
+      // Incluir el club en el payload
+      const expensePayload = { ...formData, club: clubId };
+
       if (expense) {
-        // Update existing expense
-        const updatedExpense = await api.updateExpense(expense.id, formData);
+        // Para actualizar, usamos expense.id o expense._id
+        const id = expense.id || expense._id;
+        if (!id) {
+          throw new Error('ID del gasto no definido');
+        }
+        const response = await fetch(`${API_BASE_URL}/api/expenses/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(expensePayload)
+        });
+        if (!response.ok) throw new Error('Error updating expense');
+        const updatedExpense = await response.json();
         onSave(updatedExpense);
       } else {
-        // Create new expense
-        const newExpense = await api.createExpense(formData);
+        // Crear nuevo gasto
+        const response = await fetch(`${API_BASE_URL}/api/expenses`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(expensePayload)
+        });
+        if (!response.ok) throw new Error('Error creating expense');
+        const newExpense = await response.json();
         onSave(newExpense);
-        
-        // If save and repeat, clear form but keep category and supplier
+
         if (saveAndRepeat) {
           setFormData({
             amount: 0,
@@ -113,7 +144,6 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
     }
   };
 
-  // Check if this is an inventory expense to show additional fields
   const isInventoryExpense = formData.category === 'inventory';
 
   return (
@@ -123,16 +153,13 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
           <h3 className="text-lg font-medium">
             {expense ? 'Editar Gasto' : 'Registrar Nuevo Gasto'}
           </h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-500"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
             <X className="h-6 w-6" />
           </button>
         </div>
 
         <form onSubmit={(e) => handleSubmit(e)} className="p-4 space-y-4">
-          {/* Amount */}
+          {/* Campo Monto */}
           <div>
             <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
               Monto*
@@ -150,12 +177,14 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
                 className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 placeholder="0.00"
                 value={formData.amount || ''}
-                onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
+                onChange={(e) =>
+                  setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })
+                }
               />
             </div>
           </div>
 
-          {/* Category */}
+          {/* Campo Categoría */}
           <div>
             <label htmlFor="category" className="block text-sm font-medium text-gray-700">
               Categoría*
@@ -175,7 +204,7 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
             </select>
           </div>
 
-          {/* Date */}
+          {/* Campo Fecha */}
           <div>
             <label htmlFor="date" className="block text-sm font-medium text-gray-700">
               Fecha*
@@ -195,7 +224,7 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
             </div>
           </div>
 
-          {/* Description */}
+          {/* Campo Descripción */}
           <div>
             <label htmlFor="description" className="block text-sm font-medium text-gray-700">
               Descripción
@@ -215,7 +244,7 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
             </div>
           </div>
 
-          {/* Supplier with autocomplete */}
+          {/* Campo Proveedor con Autocomplete */}
           <div>
             <label htmlFor="supplier" className="block text-sm font-medium text-gray-700">
               Proveedor
@@ -251,7 +280,7 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
             </p>
           </div>
 
-          {/* Inventory specific fields */}
+          {/* Campos para gasto de Inventario */}
           {isInventoryExpense && (
             <div className="p-3 bg-blue-50 rounded-md">
               <h4 className="text-sm font-medium text-blue-800 mb-2">
@@ -260,27 +289,26 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
               <p className="text-xs text-blue-600 mb-2">
                 Este gasto se registrará como una compra de inventario.
               </p>
-              {/* In a real app, this would have fields to select products and quantities */}
               <p className="text-xs text-blue-600">
                 Recuerda actualizar tu inventario después de registrar este gasto.
               </p>
             </div>
           )}
 
-          {/* Receipt upload */}
+          {/* Subida de Comprobante */}
           <div>
             <label className="block text-sm font-medium text-gray-700">
               Comprobante (opcional)
             </label>
-            <div 
+            <div
               className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-gray-400"
               onClick={() => fileInputRef.current?.click()}
             >
               <div className="space-y-1 text-center">
                 {receiptPreview ? (
-                  <img 
-                    src={receiptPreview} 
-                    alt="Receipt preview" 
+                  <img
+                    src={receiptPreview}
+                    alt="Receipt preview"
                     className="mx-auto h-32 w-auto object-contain"
                   />
                 ) : (
@@ -304,14 +332,12 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
                   </label>
                   <p className="pl-1">o arrastra y suelta</p>
                 </div>
-                <p className="text-xs text-gray-500">
-                  PNG, JPG, PDF hasta 10MB
-                </p>
+                <p className="text-xs text-gray-500">PNG, JPG, PDF hasta 10MB</p>
               </div>
             </div>
           </div>
 
-          {/* Recurring expense checkbox */}
+          {/* Checkbox para gasto recurrente */}
           <div className="flex items-center">
             <input
               id="is_recurring"
@@ -355,3 +381,4 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
     </div>
   );
 }
+

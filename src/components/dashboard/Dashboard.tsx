@@ -92,7 +92,7 @@ export default function Dashboard() {
     try {
       // Obtener la zona horaria del cliente
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const response = await fetch(`${API_BASE_URL}/api/dashboard/kpis?club=${clubId}&timezone=${timezone}`);
+      const response = await fetch(`${API_BASE_URL}/api/dashboard/kpis?club=${clubId}&timezone=${timezone}&user=${user?.id}`);
       if (!response.ok) {
         throw new Error('No hay suficientes datos');
       }

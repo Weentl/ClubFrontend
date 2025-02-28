@@ -1,11 +1,14 @@
-import React, { useState, useEffect } from 'react';
+// ExpensesPage.tsx
+import { useState, useEffect } from 'react';
 import { Plus, Filter, Download, Calendar } from 'lucide-react';
 import ExpensesList from './ExpensesList';
 import ExpenseFormModal from './ExpenseFormModal';
 import ExpenseSummary from './ExpenseSummary';
 import { Expense } from '../types/expenses';
-import { api } from '../lib/mockData';
 import toast from 'react-hot-toast';
+
+// Definir API_BASE_URL localmente
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -14,7 +17,9 @@ export default function ExpensesPage() {
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [filterCategory, setFilterCategory] = useState('all');
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({
-    start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+    start: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+      .toISOString()
+      .split('T')[0],
     end: new Date().toISOString().split('T')[0]
   });
 
@@ -25,7 +30,15 @@ export default function ExpensesPage() {
   const loadExpenses = async () => {
     try {
       setLoading(true);
-      const data = await api.getExpenses();
+      // Obtener el club activo del localStorage
+      const mainClubStr = localStorage.getItem('mainClub');
+      if (!mainClubStr) throw new Error('Club no encontrado');
+      const mainClub = JSON.parse(mainClubStr);
+      const clubId = mainClub.id;
+      
+      const response = await fetch(`${API_BASE_URL}/api/expenses?club=${clubId}`);
+      if (!response.ok) throw new Error('Error fetching expenses');
+      const data = await response.json();
       setExpenses(data);
     } catch (error) {
       console.error('Error loading expenses:', error);
@@ -42,9 +55,11 @@ export default function ExpensesPage() {
   };
 
   const handleUpdateExpense = (updatedExpense: Expense) => {
+    // Usar updatedExpense.id o updatedExpense._id
+    const id = updatedExpense.id || updatedExpense._id;
     setExpenses(
       expenses.map((expense) =>
-        expense.id === updatedExpense.id ? updatedExpense : expense
+        (expense.id || expense._id) === id ? updatedExpense : expense
       )
     );
     setSelectedExpense(null);
@@ -53,8 +68,11 @@ export default function ExpensesPage() {
 
   const handleDeleteExpense = async (expenseId: string) => {
     try {
-      await api.deleteExpense(expenseId);
-      setExpenses(expenses.filter((expense) => expense.id !== expenseId));
+      const response = await fetch(`${API_BASE_URL}/api/expenses/${expenseId}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Error deleting expense');
+      setExpenses(expenses.filter((expense) => (expense.id || expense._id) !== expenseId));
       toast.success('Gasto eliminado correctamente');
     } catch (error) {
       console.error('Error deleting expense:', error);
@@ -66,16 +84,13 @@ export default function ExpensesPage() {
     const expenseDate = new Date(expense.date);
     const startDate = new Date(dateRange.start);
     const endDate = new Date(dateRange.end);
-    endDate.setHours(23, 59, 59); // Include the entire end day
-    
+    endDate.setHours(23, 59, 59);
     const matchesCategory = filterCategory === 'all' || expense.category === filterCategory;
     const matchesDate = expenseDate >= startDate && expenseDate <= endDate;
-    
     return matchesCategory && matchesDate;
   });
 
   const exportExpenses = () => {
-    // In a real app, this would generate a CSV or PDF
     const csvContent = [
       ['Fecha', 'Categoría', 'Descripción', 'Monto', 'Proveedor'].join(','),
       ...filteredExpenses.map(expense => [
@@ -95,7 +110,6 @@ export default function ExpensesPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
     toast.success('Reporte exportado correctamente');
   };
 
@@ -104,7 +118,6 @@ export default function ExpensesPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <h1 className="text-2xl font-semibold text-gray-900 mb-4 md:mb-0">Gestión de Gastos</h1>
-          
           <div className="flex flex-wrap gap-3">
             <div className="relative inline-block">
               <div className="flex items-center border border-gray-300 rounded-md shadow-sm bg-white">
@@ -125,7 +138,6 @@ export default function ExpensesPage() {
                 </select>
               </div>
             </div>
-            
             <div className="relative inline-block">
               <div className="flex items-center border border-gray-300 rounded-md shadow-sm bg-white">
                 <div className="px-3 py-2 border-r border-gray-300">
@@ -146,7 +158,6 @@ export default function ExpensesPage() {
                 />
               </div>
             </div>
-            
             <button 
               className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
               onClick={exportExpenses}
@@ -154,7 +165,6 @@ export default function ExpensesPage() {
               <Download className="h-4 w-4 mr-2" />
               Exportar
             </button>
-            
             <button 
               className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#28A745] hover:bg-[#218838]"
               onClick={() => setShowAddModal(true)}
@@ -164,7 +174,6 @@ export default function ExpensesPage() {
             </button>
           </div>
         </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <ExpensesList 
@@ -174,7 +183,6 @@ export default function ExpensesPage() {
               onDelete={handleDeleteExpense} 
             />
           </div>
-          
           <div className="lg:col-span-1">
             <ExpenseSummary expenses={filteredExpenses} dateRange={dateRange} />
           </div>
@@ -198,3 +206,5 @@ export default function ExpensesPage() {
     </div>
   );
 }
+
+

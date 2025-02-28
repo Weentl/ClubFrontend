@@ -1,3 +1,4 @@
+// ExpenseSummary.tsx
 import React from 'react';
 import { DollarSign, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
 import { Expense } from '../types/expenses';
@@ -8,10 +9,10 @@ interface Props {
 }
 
 export default function ExpenseSummary({ expenses, dateRange }: Props) {
-  // Calculate total expenses for the current period
+  // Calcular el gasto total en el período actual
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  
-  // Group expenses by category
+
+  // Agrupar gastos por categoría
   const expensesByCategory: Record<string, number> = {};
   expenses.forEach(expense => {
     if (!expensesByCategory[expense.category]) {
@@ -19,8 +20,8 @@ export default function ExpenseSummary({ expenses, dateRange }: Props) {
     }
     expensesByCategory[expense.category] += expense.amount;
   });
-  
-  // Sort categories by amount (descending)
+
+  // Ordenar categorías por monto (descendente)
   const sortedCategories = Object.entries(expensesByCategory)
     .sort(([, a], [, b]) => b - a)
     .map(([category, amount]) => ({
@@ -28,16 +29,16 @@ export default function ExpenseSummary({ expenses, dateRange }: Props) {
       amount,
       percentage: (amount / totalExpenses) * 100
     }));
-  
-  // Find most frequent expense category
+
+  // Categoría más frecuente
   const mostFrequentCategory = sortedCategories.length > 0 ? sortedCategories[0].category : 'N/A';
   const mostFrequentAmount = sortedCategories.length > 0 ? sortedCategories[0].amount : 0;
-  
-  // Mock comparison with previous period (in a real app, this would come from the API)
-  const previousPeriodTotal = totalExpenses * 0.9; // Simulating 10% less in previous period
+
+  // Comparación simulada con el período anterior (10% menos)
+  const previousPeriodTotal = totalExpenses * 0.9;
   const changePercentage = ((totalExpenses - previousPeriodTotal) / previousPeriodTotal) * 100;
-  
-  // Category colors for the chart
+
+  // Colores e íconos por categoría
   const CATEGORY_COLORS: Record<string, string> = {
     inventory: 'bg-blue-500',
     services: 'bg-yellow-500',
@@ -45,8 +46,7 @@ export default function ExpenseSummary({ expenses, dateRange }: Props) {
     logistics: 'bg-green-500',
     other: 'bg-gray-500',
   };
-  
-  // Category icons
+
   const CATEGORY_ICONS: Record<string, string> = {
     inventory: '📦',
     services: '💡',
@@ -54,17 +54,13 @@ export default function ExpenseSummary({ expenses, dateRange }: Props) {
     logistics: '🚚',
     other: '❔',
   };
-  
-  // Format category name
-  const formatCategoryName = (category: string) => {
-    return category.charAt(0).toUpperCase() + category.slice(1);
-  };
-  
-  // Format date range for display
+
+  const formatCategoryName = (category: string) =>
+    category.charAt(0).toUpperCase() + category.slice(1);
+
   const formatDateRange = () => {
     const start = new Date(dateRange.start);
     const end = new Date(dateRange.end);
-    
     return `${start.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })}`;
   };
 
@@ -77,13 +73,11 @@ export default function ExpenseSummary({ expenses, dateRange }: Props) {
           {formatDateRange()}
         </p>
       </div>
-      
       <div className="p-4">
-        {/* Total expenses card */}
+        {/* Tarjeta de gasto total */}
         <div className="bg-gray-50 rounded-lg p-4 mb-6">
           <p className="text-sm font-medium text-gray-500">Gasto Total</p>
           <p className="mt-1 text-3xl font-semibold text-red-600">${totalExpenses.toFixed(2)}</p>
-          
           <div className="mt-2 flex items-center">
             {changePercentage > 0 ? (
               <>
@@ -102,37 +96,26 @@ export default function ExpenseSummary({ expenses, dateRange }: Props) {
             )}
           </div>
         </div>
-        
-        {/* Pie chart */}
+        {/* Gráfico de pastel */}
         <div className="mb-6">
           <h4 className="text-sm font-medium text-gray-700 mb-3">Distribución por Categoría</h4>
-          
           {expenses.length === 0 ? (
             <p className="text-sm text-gray-500 text-center py-4">
               No hay datos para mostrar
             </p>
           ) : (
             <>
-              {/* Visual pie chart representation */}
               <div className="relative h-48 w-48 mx-auto mb-4">
                 <svg viewBox="0 0 100 100" className="w-full h-full">
                   {sortedCategories.reduce((elements, { category, percentage }, index, array) => {
-                    const previousTotal = array
-                      .slice(0, index)
-                      .reduce((sum, item) => sum + item.percentage, 0);
-                    
+                    const previousTotal = array.slice(0, index).reduce((sum, item) => sum + item.percentage, 0);
                     const startAngle = (previousTotal / 100) * 360;
                     const endAngle = ((previousTotal + percentage) / 100) * 360;
-                    
-                    // Calculate path for pie slice
                     const x1 = 50 + 40 * Math.cos((startAngle - 90) * (Math.PI / 180));
                     const y1 = 50 + 40 * Math.sin((startAngle - 90) * (Math.PI / 180));
                     const x2 = 50 + 40 * Math.cos((endAngle - 90) * (Math.PI / 180));
                     const y2 = 50 + 40 * Math.sin((endAngle - 90) * (Math.PI / 180));
-                    
-                    // Determine if the arc should be drawn as a large arc
                     const largeArcFlag = percentage > 50 ? 1 : 0;
-                    
                     elements.push(
                       <path
                         key={category}
@@ -142,13 +125,11 @@ export default function ExpenseSummary({ expenses, dateRange }: Props) {
                         strokeWidth="1"
                       />
                     );
-                    
                     return elements;
                   }, [] as React.ReactElement[])}
                 </svg>
               </div>
-              
-              {/* Legend */}
+              {/* Leyenda */}
               <div className="space-y-2">
                 {sortedCategories.map(({ category, amount, percentage }) => (
                   <div key={category} className="flex items-center justify-between">
@@ -167,8 +148,7 @@ export default function ExpenseSummary({ expenses, dateRange }: Props) {
             </>
           )}
         </div>
-        
-        {/* Most frequent expense */}
+        {/* Gasto Frecuente */}
         {expenses.length > 0 && (
           <div className="bg-gray-50 rounded-lg p-4">
             <h4 className="text-sm font-medium text-gray-700 mb-2">Gasto Frecuente</h4>

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+// ExpensesList.tsx
+import { useState } from 'react';
 import { Search, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 import { Expense } from '../types/expenses';
 
@@ -29,17 +30,15 @@ export default function ExpensesList({ expenses, loading, onEdit, onDelete }: Pr
   const [searchTerm, setSearchTerm] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
-  const filteredExpenses = expenses.filter(expense => 
+  const filteredExpenses = expenses.filter(expense =>
     expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
     expense.supplier?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Calculate average expense amount to highlight high expenses
-  const averageAmount = expenses.length > 0 
-    ? expenses.reduce((sum, expense) => sum + expense.amount, 0) / expenses.length 
+  const averageAmount = expenses.length > 0
+    ? expenses.reduce((sum, expense) => sum + expense.amount, 0) / expenses.length
     : 0;
-  
-  // Threshold for highlighting high expenses (20% above average)
+
   const highExpenseThreshold = averageAmount * 1.2;
 
   const handleDeleteClick = (expenseId: string) => {
@@ -112,13 +111,10 @@ export default function ExpensesList({ expenses, loading, onEdit, onDelete }: Pr
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredExpenses.map((expense) => {
+                const expenseId = expense.id || expense._id; // Obtener el id correcto
                 const isHighExpense = expense.amount > highExpenseThreshold;
-                
                 return (
-                  <tr 
-                    key={expense.id} 
-                    className={isHighExpense ? 'bg-red-50' : ''}
-                  >
+                  <tr key={expense.id} className={isHighExpense ? 'bg-red-50' : ''}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {formatDate(expense.date)}
                     </td>
@@ -157,7 +153,7 @@ export default function ExpensesList({ expenses, loading, onEdit, onDelete }: Pr
                         <Edit2 className="h-5 w-5" />
                       </button>
                       <button
-                        onClick={() => handleDeleteClick(expense.id)}
+                        onClick={() => handleDeleteClick(expenseId)}
                         className="text-red-600 hover:text-red-900"
                         title="Eliminar gasto"
                       >
@@ -172,7 +168,7 @@ export default function ExpensesList({ expenses, loading, onEdit, onDelete }: Pr
         </div>
       )}
 
-      {/* Confirmation Modal */}
+      {/* Modal de confirmación para eliminar */}
       {confirmDelete && (
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-sm mx-auto">
