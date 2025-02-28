@@ -1,12 +1,14 @@
-//TransactionHistoryReport.tsx
-import React, { useState } from 'react';
+// reports/TransactionHistoryReport.tsx
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 interface TransactionHistoryReportProps {
   period: 'weekly' | 'monthly' | 'yearly';
 }
 
-interface Transaction {
+export interface Transaction {
   id: string;
   date: string;
   type: 'sale' | 'expense' | 'adjustment';
@@ -16,7 +18,13 @@ interface Transaction {
   reference?: string;
 }
 
+interface TransactionHistoryReportData {
+  transactionsData: Transaction[];
+}
+
 export default function TransactionHistoryReport({ period }: TransactionHistoryReportProps) {
+  const [data, setData] = useState<TransactionHistoryReportData | null>(null);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'sale' | 'expense' | 'adjustment'>('all');
   const [filterAmount, setFilterAmount] = useState<'all' | 'small' | 'medium' | 'large'>('all');
@@ -25,123 +33,48 @@ export default function TransactionHistoryReport({ period }: TransactionHistoryR
     end: '2024-05-31'
   });
 
-  // Datos de ejemplo
-  const transactionsData: Transaction[] = [
-    { 
-      id: '1',
-      date: '2024-05-15',
-      type: 'sale',
-      description: 'Venta de Proteína Whey x2',
-      amount: 2400,
-      category: 'Suplementos',
-      reference: 'Venta #1234'
-    },
-    { 
-      id: '2',
-      date: '2024-05-16',
-      type: 'expense',
-      description: 'Compra de empaques',
-      amount: -120,
-      category: 'Inventario',
-      reference: 'Factura #5678'
-    },
-    { 
-      id: '3',
-      date: '2024-05-17',
-      type: 'sale',
-      description: 'Venta de Batidos x5',
-      amount: 600,
-      category: 'Preparados',
-      reference: 'Venta #1235'
-    },
-    { 
-      id: '4',
-      date: '2024-05-18',
-      type: 'expense',
-      description: 'Pago de electricidad',
-      amount: -150,
-      category: 'Servicios',
-      reference: 'Recibo #9012'
-    },
-    { 
-      id: '5',
-      date: '2024-05-19',
-      type: 'adjustment',
-      description: 'Ajuste de inventario - Proteína',
-      amount: -300,
-      category: 'Inventario'
-    },
-    { 
-      id: '6',
-      date: '2024-05-20',
-      type: 'sale',
-      description: 'Venta de BCAA x3',
-      amount: 1800,
-      category: 'Suplementos',
-      reference: 'Venta #1236'
-    },
-    { 
-      id: '7',
-      date: '2024-05-21',
-      type: 'expense',
-      description: 'Pago de nómina',
-      amount: -2000,
-      category: 'Nómina',
-      reference: 'Transferencia #3456'
-    },
-    { 
-      id: '8',
-      date: '2024-05-22',
-      type: 'sale',
-      description: 'Venta de Waffles x10',
-      amount: 900,
-      category: 'Preparados',
-      reference: 'Venta #1237'
-    },
-    { 
-      id: '9',
-      date: '2024-05-23',
-      type: 'expense',
-      description: 'Compra de ingredientes',
-      amount: -500,
-      category: 'Inventario',
-      reference: 'Factura #5679'
-    },
-    { 
-      id: '10',
-      date: '2024-05-24',
-      type: 'adjustment',
-      description: 'Ajuste de inventario - Vasos',
-      amount: -100,
-      category: 'Inventario'
-    },
-  ];
+  useEffect(() => {
+    setLoading(true);
+    fetch(`${API_BASE_URL}/api/reports?type=transaction-history&period=${period}`)
+      .then((res) => res.json())
+      .then((fetchedData: TransactionHistoryReportData) => {
+        setData(fetchedData);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Error fetching transaction history data:', err);
+        setLoading(false);
+      });
+  }, [period]);
+
+  if (loading) return <p>Cargando datos...</p>;
+  if (!data) return <p>Error al cargar datos.</p>;
+
+  const transactionsData = data.transactionsData;
 
   // Filtrar transacciones
   const filteredTransactions = transactionsData.filter(transaction => {
-    // Filtro de búsqueda
-    const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          transaction.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (transaction.reference && transaction.reference.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    // Filtro de tipo
+    const lowerSearch = searchTerm.toLowerCase();
+    const matchesSearch =
+      transaction.description.toLowerCase().includes(lowerSearch) ||
+      transaction.category.toLowerCase().includes(lowerSearch) ||
+      (transaction.reference && transaction.reference.toLowerCase().includes(lowerSearch));
+
     const matchesType = filterType === 'all' || transaction.type === filterType;
-    
-    // Filtro de monto
+
     const absAmount = Math.abs(transaction.amount);
-    const matchesAmount = filterAmount === 'all' || 
-                          (filterAmount === 'small' && absAmount < 500) ||
-                          (filterAmount === 'medium' && absAmount >= 500 && absAmount < 1000) ||
-                          (filterAmount === 'large' && absAmount >= 1000);
-    
-    // Filtro de fecha
+    const matchesAmount =
+      filterAmount === 'all' ||
+      (filterAmount === 'small' && absAmount < 500) ||
+      (filterAmount === 'medium' && absAmount >= 500 && absAmount < 1000) ||
+      (filterAmount === 'large' && absAmount >= 1000);
+
     const transactionDate = new Date(transaction.date);
     const startDate = new Date(dateRange.start);
     const endDate = new Date(dateRange.end);
-    endDate.setHours(23, 59, 59); // Incluir todo el día final
-    
+    endDate.setHours(23, 59, 59);
     const matchesDate = transactionDate >= startDate && transactionDate <= endDate;
-    
+
     return matchesSearch && matchesType && matchesAmount && matchesDate;
   });
 
@@ -149,11 +82,9 @@ export default function TransactionHistoryReport({ period }: TransactionHistoryR
   const totalInflow = filteredTransactions
     .filter(t => t.amount > 0)
     .reduce((sum, t) => sum + t.amount, 0);
-  
   const totalOutflow = filteredTransactions
     .filter(t => t.amount < 0)
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-  
   const netFlow = totalInflow - totalOutflow;
 
   return (
@@ -178,7 +109,6 @@ export default function TransactionHistoryReport({ period }: TransactionHistoryR
             </div>
           </div>
         </div>
-        
         <div className="bg-white border rounded-lg shadow-sm p-4">
           <div className="flex justify-between items-start">
             <div>
@@ -190,7 +120,6 @@ export default function TransactionHistoryReport({ period }: TransactionHistoryR
             </div>
           </div>
         </div>
-        
         <div className="bg-white border rounded-lg shadow-sm p-4">
           <div className="flex justify-between items-start">
             <div>
@@ -201,9 +130,9 @@ export default function TransactionHistoryReport({ period }: TransactionHistoryR
             </div>
             <div className={`p-2 rounded-full ${netFlow >= 0 ? 'bg-blue-100' : 'bg-red-100'}`}>
               {netFlow >= 0 ? (
-                <ArrowUp className={`h-5 w-5 ${netFlow >= 0 ? 'text-blue-600' : 'text-red-600'}`} />
+                <ArrowUp className="h-5 w-5 text-blue-600" />
               ) : (
-                <ArrowDown className={`h-5 w-5 ${netFlow >= 0 ? 'text-blue-600' : 'text-red-600'}`} />
+                <ArrowDown className="h-5 w-5 text-red-600" />
               )}
             </div>
           </div>
@@ -214,9 +143,7 @@ export default function TransactionHistoryReport({ period }: TransactionHistoryR
       <div className="bg-white border rounded-lg shadow-sm p-4 mb-8">
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-[200px]">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Buscar
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
             <div className="relative">
               <input
                 type="text"
@@ -228,11 +155,8 @@ export default function TransactionHistoryReport({ period }: TransactionHistoryR
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
             </div>
           </div>
-          
           <div className="flex-1 min-w-[200px]">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tipo de Movimiento
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Movimiento</label>
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value as 'all' | 'sale' | 'expense' | 'adjustment')}
@@ -244,11 +168,8 @@ export default function TransactionHistoryReport({ period }: TransactionHistoryR
               <option value="adjustment">Ajustes</option>
             </select>
           </div>
-          
           <div className="flex-1 min-w-[200px]">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Monto
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Monto</label>
             <select
               value={filterAmount}
               onChange={(e) => setFilterAmount(e.target.value as 'all' | 'small' | 'medium' | 'large')}
@@ -260,11 +181,8 @@ export default function TransactionHistoryReport({ period }: TransactionHistoryR
               <option value="large">Grandes (&gt; $1,000)</option>
             </select>
           </div>
-          
           <div className="flex-1 min-w-[200px]">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Rango de Fechas
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Rango de Fechas</label>
             <div className="flex items-center space-x-2">
               <div className="relative flex-1">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -297,29 +215,16 @@ export default function TransactionHistoryReport({ period }: TransactionHistoryR
       {/* Tabla de transacciones */}
       <div className="bg-white border rounded-lg shadow-sm p-4">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Detalle de Movimientos</h3>
-        
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Fecha
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tipo
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Descripción
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Categoría
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Referencia
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Monto
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoría</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Referencia</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Monto</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -336,33 +241,19 @@ export default function TransactionHistoryReport({ period }: TransactionHistoryR
                           ? 'bg-red-100 text-red-800'
                           : 'bg-yellow-100 text-yellow-800'
                     }`}>
-                      {transaction.type === 'sale' 
-                        ? 'Venta' 
-                        : transaction.type === 'expense'
-                          ? 'Gasto'
-                          : 'Ajuste'
-                      }
+                      {transaction.type === 'sale' ? 'Venta' : transaction.type === 'expense' ? 'Gasto' : 'Ajuste'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {transaction.description}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {transaction.category}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {transaction.reference || '-'}
-                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{transaction.description}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{transaction.category}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{transaction.reference || '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <span className={`text-sm font-medium ${
-                      transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
+                    <span className={`text-sm font-medium ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {transaction.amount > 0 ? '+' : ''}${transaction.amount.toLocaleString()}
                     </span>
                   </td>
                 </tr>
               ))}
-              
               {filteredTransactions.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">

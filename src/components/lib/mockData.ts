@@ -3,6 +3,7 @@ import { Sale } from '../types/sales';
 import { InventoryItem, InventoryMovement } from '../types/inventory';
 import { Client } from '../types/clients';
 import { Club, Employee } from '../types/clubs';
+import { Expense } from '../types/expenses';
 
 export const mockProducts: Product[] = [
   {
@@ -59,7 +60,6 @@ export const mockInventoryMovements: InventoryMovement[] = [
     purchase_price: 800,
     sale_price: 1200,
     update_catalog_price: true,
-    _id: undefined
   },
   {
     id: '2',
@@ -68,8 +68,7 @@ export const mockInventoryMovements: InventoryMovement[] = [
     quantity: -5,
     notes: 'Uso en batidos',
     created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    _id: undefined,
-    update_catalog_price: false
+    update_catalog_price: false,
   },
 ];
 
@@ -84,7 +83,6 @@ export const mockClients: Client[] = [
     last_purchase: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
     preferences: ['supplements', 'snacks'],
     created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
-    _id: ''
   },
   {
     id: '2',
@@ -96,7 +94,6 @@ export const mockClients: Client[] = [
     last_purchase: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
     preferences: ['food'],
     created_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
-    _id: ''
   },
   {
     id: '3',
@@ -108,7 +105,6 @@ export const mockClients: Client[] = [
     last_purchase: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
     preferences: ['supplements', 'food', 'snacks'],
     created_at: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
-    _id: ''
   },
   {
     id: '4',
@@ -118,7 +114,6 @@ export const mockClients: Client[] = [
     total_spent: 350,
     preferences: ['supplements'],
     created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-    _id: ''
   },
   {
     id: '5',
@@ -129,7 +124,6 @@ export const mockClients: Client[] = [
     last_purchase: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
     preferences: ['food', 'snacks'],
     created_at: new Date(Date.now() - 75 * 24 * 60 * 60 * 1000).toISOString(),
-    _id: ''
   },
 ];
 
@@ -155,8 +149,7 @@ export const mockSales: Sale[] = [
     total: 1440,
     created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
     status: 'completed',
-    client_id: '1',
-    _id: ''
+    client_id: '1', // Ana Pérez
   },
   {
     id: '2',
@@ -172,8 +165,7 @@ export const mockSales: Sale[] = [
     total: 270,
     created_at: new Date().toISOString(),
     status: 'pending_inventory_adjustment',
-    client_id: '2',
-    _id: ''
+    client_id: '2', // Luis Rodríguez
   },
 ];
 
@@ -284,6 +276,79 @@ export const mockEmployees: Employee[] = [
     last_access: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
     permissions: ['sales', 'inventory'],
     club_id: '2'
+  }
+];
+
+// Mock data for expenses
+export const mockExpenses: Expense[] = [
+  {
+    id: '1',
+    amount: 1200,
+    category: 'inventory',
+    date: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    description: 'Compra de proteína whey x50',
+    supplier: 'Suplementos S.A.',
+    is_recurring: false,
+    created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    id: '2',
+    amount: 300,
+    category: 'services',
+    date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    description: 'Pago de electricidad',
+    supplier: 'Servicios Eléctricos',
+    is_recurring: true,
+    created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    id: '3',
+    amount: 2000,
+    category: 'payroll',
+    date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    description: 'Pago de nómina quincenal',
+    is_recurring: true,
+    created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    id: '4',
+    amount: 150,
+    category: 'logistics',
+    date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    description: 'Envío de productos',
+    supplier: 'Transportes Rápidos',
+    is_recurring: false,
+    created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    id: '5',
+    amount: 100,
+    category: 'other',
+    date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    description: 'Artículos de limpieza',
+    supplier: 'Limpieza Total',
+    is_recurring: false,
+    created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    id: '6',
+    amount: 500,
+    category: 'inventory',
+    date: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    description: 'Compra de BCAA x20',
+    supplier: 'Suplementos S.A.',
+    is_recurring: false,
+    created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    id: '7',
+    amount: 120,
+    category: 'services',
+    date: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    description: 'Pago de internet',
+    supplier: 'Servicios de Internet',
+    is_recurring: true,
+    created_at: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString()
   }
 ];
 
@@ -432,6 +497,44 @@ export const api = {
       return Promise.reject(new Error('Cannot delete owner'));
     }
     console.log('Deleting employee:', id);
+    return Promise.resolve({ success: true });
+  },
+  
+  // Expenses
+  getExpenses: () => {
+    // CONEXIÓN API: GET /api/expenses → Lista de gastos
+    return Promise.resolve(mockExpenses);
+  },
+  createExpense: (expenseData: any) => {
+    // CONEXIÓN API: POST /api/expenses → { amount, category, date, description, supplier, is_recurring }
+    const newExpense = {
+      ...expenseData,
+      id: crypto.randomUUID(),
+      created_at: new Date().toISOString()
+    };
+    console.log('Creating expense:', newExpense);
+    
+    // If it's an inventory expense, we would update inventory here
+    if (expenseData.category === 'inventory') {
+      console.log('This is an inventory expense, would update stock');
+      // In a real app, this would call the inventory API to update stock
+    }
+    
+    return Promise.resolve(newExpense);
+  },
+  updateExpense: (id: string, expenseData: any) => {
+    // CONEXIÓN API: PATCH /api/expenses/:id → { ...expenseData }
+    const expense = mockExpenses.find(e => e.id === id);
+    if (!expense) {
+      return Promise.reject(new Error('Expense not found'));
+    }
+    const updatedExpense = { ...expense, ...expenseData };
+    console.log('Updating expense:', updatedExpense);
+    return Promise.resolve(updatedExpense);
+  },
+  deleteExpense: (id: string) => {
+    // CONEXIÓN API: DELETE /api/expenses/:id
+    console.log('Deleting expense:', id);
     return Promise.resolve({ success: true });
   }
 };
