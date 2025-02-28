@@ -10,6 +10,7 @@ import {
   PackageSearch,
 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
@@ -24,6 +25,15 @@ const menuItems = [
 
 export default function Sidebar() {
   const location = useLocation();
+  const { signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
 
   return (
     <div className="h-screen w-64 bg-white border-r border-gray-200 fixed left-0 top-0">
@@ -52,7 +62,7 @@ export default function Sidebar() {
         </div>
 
         <div className="p-4 border-t border-gray-200">
-          <button className="flex items-center px-4 py-2 text-sm font-medium text-red-600 rounded-md hover:bg-red-50 w-full">
+          <button onClick={handleSignOut} className="flex items-center px-4 py-2 text-sm font-medium text-red-600 rounded-md hover:bg-red-50 w-full">
             <LogOut className="mr-3 h-5 w-5" />
             Cerrar Sesión
           </button>

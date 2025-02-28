@@ -18,6 +18,7 @@ import InventoryList from './components/inventory/InventoryList';
 import SalesPage from './components/sales/SalesPage';
 import ClientsList from './components/clients/ClientsList';
 import ClubsPage from './components/clubs/ClubsPage';
+import ReportsPage from './components/reports/ReportsPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -59,6 +60,7 @@ function App() {
             <Route path="/customers" element={<ClientsList />} />
             <Route path="/clubs" element={<ClubsPage/>} />
             <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="/reports" element={<ReportsPage />} />
           </Route>
           <Route path="/onboarding" element={
             <PrivateRoute>
