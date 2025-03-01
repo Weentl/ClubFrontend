@@ -3,6 +3,13 @@ import React from 'react';
 import { DollarSign, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
 import { Expense } from '../types/expenses';
 
+// Función auxiliar para convertir una cadena "YYYY-MM-DD" o ISO a Date local
+function parseLocalDate(dateStr: string): Date {
+  const pureDate = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+  const parts = pureDate.split('-').map(Number);
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
 interface Props {
   expenses: Expense[];
   dateRange: { start: string; end: string };
@@ -27,24 +34,23 @@ export default function ExpenseSummary({ expenses, dateRange }: Props) {
     .map(([category, amount]) => ({
       category,
       amount,
-      percentage: (amount / totalExpenses) * 100
+      percentage: totalExpenses ? (amount / totalExpenses) * 100 : 0
     }));
 
-  // Categoría más frecuente
   const mostFrequentCategory = sortedCategories.length > 0 ? sortedCategories[0].category : 'N/A';
   const mostFrequentAmount = sortedCategories.length > 0 ? sortedCategories[0].amount : 0;
 
   // Comparación simulada con el período anterior (10% menos)
   const previousPeriodTotal = totalExpenses * 0.9;
-  const changePercentage = ((totalExpenses - previousPeriodTotal) / previousPeriodTotal) * 100;
+  const changePercentage = previousPeriodTotal ? ((totalExpenses - previousPeriodTotal) / previousPeriodTotal) * 100 : 0;
 
-  // Colores e íconos por categoría
+  // Colores e íconos por categoría (valores hexadecimales)
   const CATEGORY_COLORS: Record<string, string> = {
-    inventory: 'bg-blue-500',
-    services: 'bg-yellow-500',
-    payroll: 'bg-purple-500',
-    logistics: 'bg-green-500',
-    other: 'bg-gray-500',
+    inventory: '#3B82F6',  
+    services: '#F59E0B',   
+    payroll: '#8B5CF6',    
+    logistics: '#22C55E',  
+    other: '#6B7280',      
   };
 
   const CATEGORY_ICONS: Record<string, string> = {
@@ -58,10 +64,11 @@ export default function ExpenseSummary({ expenses, dateRange }: Props) {
   const formatCategoryName = (category: string) =>
     category.charAt(0).toUpperCase() + category.slice(1);
 
+  // Usar parseLocalDate para evitar desfases al formatear el rango de fechas
   const formatDateRange = () => {
-    const start = new Date(dateRange.start);
-    const end = new Date(dateRange.end);
-    return `${start.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })}`;
+    const start = parseLocalDate(dateRange.start);
+    const end = parseLocalDate(dateRange.end);
+    return `${start.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })} - ${end.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}`;
   };
 
   return (
@@ -96,8 +103,8 @@ export default function ExpenseSummary({ expenses, dateRange }: Props) {
             )}
           </div>
         </div>
-        {/* Gráfico de pastel */}
-        <div className="mb-6">
+        {/* Gráfica de pastel con id para captura */}
+        <div className="mb-6" id="expense-chart">
           <h4 className="text-sm font-medium text-gray-700 mb-3">Distribución por Categoría</h4>
           {expenses.length === 0 ? (
             <p className="text-sm text-gray-500 text-center py-4">
@@ -134,7 +141,7 @@ export default function ExpenseSummary({ expenses, dateRange }: Props) {
                 {sortedCategories.map(({ category, amount, percentage }) => (
                   <div key={category} className="flex items-center justify-between">
                     <div className="flex items-center">
-                      <div className={`w-3 h-3 ${CATEGORY_COLORS[category] || 'bg-gray-500'} rounded-full mr-2`}></div>
+                      <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: CATEGORY_COLORS[category] || '#9CA3AF' }}></div>
                       <span className="text-sm text-gray-700">
                         {CATEGORY_ICONS[category]} {formatCategoryName(category)}
                       </span>
@@ -169,3 +176,5 @@ export default function ExpenseSummary({ expenses, dateRange }: Props) {
     </div>
   );
 }
+
+

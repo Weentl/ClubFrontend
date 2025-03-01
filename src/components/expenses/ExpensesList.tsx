@@ -10,6 +10,14 @@ interface Props {
   onDelete: (expenseId: string) => void;
 }
 
+// Función auxiliar: Convierte una cadena ISO (o "YYYY-MM-DD") a Date en horario local
+function parseLocalDate(dateStr: string): Date {
+  // Si viene en formato ISO con 'T', extraer solo la parte de fecha
+  const pureDate = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+  const parts = pureDate.split('-').map(Number);
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
 const CATEGORY_ICONS: Record<string, string> = {
   inventory: '📦',
   services: '💡',
@@ -53,7 +61,8 @@ export default function ExpensesList({ expenses, loading, onEdit, onDelete }: Pr
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-MX', {
+    const localDate = parseLocalDate(dateString);
+    return localDate.toLocaleDateString('es-MX', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -111,10 +120,10 @@ export default function ExpensesList({ expenses, loading, onEdit, onDelete }: Pr
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredExpenses.map((expense) => {
-                const expenseId = expense.id || expense._id; // Obtener el id correcto
+                const expenseId = expense.id || expense._id; // Usar el id correcto
                 const isHighExpense = expense.amount > highExpenseThreshold;
                 return (
-                  <tr key={expense.id} className={isHighExpense ? 'bg-red-50' : ''}>
+                  <tr key={expenseId} className={isHighExpense ? 'bg-red-50' : ''}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {formatDate(expense.date)}
                     </td>
@@ -168,7 +177,6 @@ export default function ExpensesList({ expenses, loading, onEdit, onDelete }: Pr
         </div>
       )}
 
-      {/* Modal de confirmación para eliminar */}
       {confirmDelete && (
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-sm mx-auto">
@@ -198,3 +206,4 @@ export default function ExpensesList({ expenses, loading, onEdit, onDelete }: Pr
     </div>
   );
 }
+
