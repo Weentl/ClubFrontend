@@ -33,7 +33,7 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
   const [formData, setFormData] = useState<ExpenseFormData>({
     amount: expense?.amount || 0,
     category: expense?.category || 'inventory',
-    date: expense?.date || new Date().toISOString().split('T')[0],
+    date: expense?.date || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString(),
     description: expense?.description || '',
     supplier: expense?.supplier || '',
     is_recurring: expense?.is_recurring || false,
