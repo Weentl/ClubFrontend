@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Shield, Key, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-// Mock security data - in a real app, this would come from an API
+// Datos simulados de seguridad
 const securityData = {
   twoFactorEnabled: false,
   lastPasswordChange: '2024-04-15T10:30:00Z',
@@ -23,35 +23,27 @@ export default function SecuritySettings() {
   });
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
-  
+
   const handleToggleTwoFactor = () => {
-    // In a real app, this would call an API to enable/disable 2FA
-    // API: POST /api/security/two-factor → { enabled: !twoFactorEnabled }
     setTwoFactorEnabled(!twoFactorEnabled);
     toast.success(`Verificación en dos pasos ${!twoFactorEnabled ? 'activada' : 'desactivada'}`);
   };
-  
+
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setPasswordData(prev => ({ ...prev, [name]: value }));
   };
-  
+
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate passwords
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       toast.error('Las contraseñas no coinciden');
       return;
     }
-    
     if (passwordData.newPassword.length < 8) {
       toast.error('La contraseña debe tener al menos 8 caracteres');
       return;
     }
-    
-    // In a real app, this would call an API to change the password
-    // API: POST /api/auth/change-password → { oldPassword, newPassword }
     toast.success('Contraseña actualizada correctamente');
     setShowPasswordModal(false);
     setPasswordData({
@@ -60,7 +52,7 @@ export default function SecuritySettings() {
       confirmPassword: ''
     });
   };
-  
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('es-MX', {
       year: 'numeric',
@@ -70,44 +62,31 @@ export default function SecuritySettings() {
       minute: '2-digit'
     });
   };
-  
-  return (
-    <div>
+
+  const content = (
+    <>
       <h2 className="text-xl font-semibold text-gray-900 mb-6">Seguridad</h2>
-      
-      {/* Two-Factor Authentication */}
       <div className="bg-white border rounded-lg shadow-sm p-6 mb-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Autenticación</h3>
-        
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <Shield className="h-5 w-5 text-gray-400 mr-2" />
             <div>
               <p className="font-medium">Verificación en dos pasos</p>
-              <p className="text-sm text-gray-500">
-                Añade una capa extra de seguridad a tu cuenta
-              </p>
+              <p className="text-sm text-gray-500">Añade una capa extra de seguridad a tu cuenta</p>
             </div>
           </div>
-          
           <button
             type="button"
-            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-              twoFactorEnabled ? 'bg-[#28A745]' : 'bg-gray-200'
-            }`}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${twoFactorEnabled ? 'bg-[#28A745]' : 'bg-gray-200'}`}
             role="switch"
             aria-checked={twoFactorEnabled}
             onClick={handleToggleTwoFactor}
           >
             <span className="sr-only">Activar verificación en dos pasos</span>
-            <span
-              className={`pointer-events-none relative inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                twoFactorEnabled ? 'translate-x-5' : 'translate-x-0'
-              }`}
-            />
+            <span className={`pointer-events-none relative inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${twoFactorEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
           </button>
         </div>
-        
         {twoFactorEnabled && (
           <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
             <p className="text-sm text-green-700">
@@ -115,19 +94,15 @@ export default function SecuritySettings() {
             </p>
           </div>
         )}
-        
         <div className="mt-4 pt-4 border-t border-gray-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <Key className="h-5 w-5 text-gray-400 mr-2" />
               <div>
                 <p className="font-medium">Contraseña</p>
-                <p className="text-sm text-gray-500">
-                  Última actualización: {formatDate(securityData.lastPasswordChange)}
-                </p>
+                <p className="text-sm text-gray-500">Última actualización: {formatDate(securityData.lastPasswordChange)}</p>
               </div>
             </div>
-            
             <button
               onClick={() => setShowPasswordModal(true)}
               className="px-3 py-1.5 bg-[#2A5C9A] text-white text-sm rounded-md hover:bg-[#1e4474] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -137,60 +112,38 @@ export default function SecuritySettings() {
           </div>
         </div>
       </div>
-      
-      {/* Access Logs */}
       <div className="bg-white border rounded-lg shadow-sm p-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Historial de Acceso</h3>
-        
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Fecha
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Dispositivo
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Dirección IP
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dispositivo</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dirección IP</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {securityData.accessLogs.map((log) => (
                 <tr key={log.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(log.date)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {log.device}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {log.ip}
-                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate(log.date)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{log.device}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{log.ip}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        
         <div className="mt-4 text-right">
-          <button
-            className="text-[#2A5C9A] hover:text-[#1e4474] text-sm font-medium"
-            onClick={() => toast.success('Cargando historial completo...')}
-          >
+          <button className="text-[#2A5C9A] hover:text-[#1e4474] text-sm font-medium" onClick={() => toast.success('Cargando historial completo...')}>
             Ver historial completo
           </button>
         </div>
       </div>
-      
-      {/* Change Password Modal */}
       {showPasswordModal && (
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Cambiar Contraseña</h3>
-            
             <form onSubmit={handlePasswordSubmit}>
               <div className="space-y-4">
                 <div>
@@ -212,15 +165,10 @@ export default function SecuritySettings() {
                       className="absolute inset-y-0 right-0 pr-3 flex items-center"
                       onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                     >
-                      {showCurrentPassword ? (
-                        <EyeOff className="h-5 w-5 text-gray-400" />
-                      ) : (
-                        <Eye className="h-5 w-5 text-gray-400" />
-                      )}
+                      {showCurrentPassword ? <EyeOff className="h-5 w-5 text-gray-400" /> : <Eye className="h-5 w-5 text-gray-400" />}
                     </button>
                   </div>
                 </div>
-                
                 <div>
                   <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
                     Nueva Contraseña
@@ -241,18 +189,13 @@ export default function SecuritySettings() {
                       className="absolute inset-y-0 right-0 pr-3 flex items-center"
                       onClick={() => setShowNewPassword(!showNewPassword)}
                     >
-                      {showNewPassword ? (
-                        <EyeOff className="h-5 w-5 text-gray-400" />
-                      ) : (
-                        <Eye className="h-5 w-5 text-gray-400" />
-                      )}
+                      {showNewPassword ? <EyeOff className="h-5 w-5 text-gray-400" /> : <Eye className="h-5 w-5 text-gray-400" />}
                     </button>
                   </div>
                   <p className="mt-1 text-xs text-gray-500">
                     La contraseña debe tener al menos 8 caracteres
                   </p>
                 </div>
-                
                 <div>
                   <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
                     Confirmar Contraseña
@@ -268,7 +211,6 @@ export default function SecuritySettings() {
                   />
                 </div>
               </div>
-              
               <div className="mt-6 flex justify-end space-x-3">
                 <button
                   type="button"
@@ -277,7 +219,6 @@ export default function SecuritySettings() {
                 >
                   Cancelar
                 </button>
-                
                 <button
                   type="submit"
                   className="px-4 py-2 bg-[#2A5C9A] text-white rounded-md hover:bg-[#1e4474] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -289,6 +230,18 @@ export default function SecuritySettings() {
           </div>
         </div>
       )}
+    </>
+  );
+
+  return (
+    <div className="relative">
+      <div className="filter blur-sm pointer-events-none">
+        {content}
+      </div>
+      <div className="absolute inset-0 flex flex-col items-center justify-center bg-white bg-opacity-80 dark:bg-gray-800 dark:bg-opacity-80">
+        <h2 className="text-2xl font-bold text-gray-900">Próximamente</h2>
+        <p className="mt-2 text-gray-600">Esta función estará disponible en una próxima versión beta.</p>
+      </div>
     </div>
   );
 }

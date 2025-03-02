@@ -1,5 +1,6 @@
 //Product.ts
 export interface Product {
+    _id: string;
     id: string;
     name: string;
     category: string;

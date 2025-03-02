@@ -1,107 +1,98 @@
-// SalesList.tsx
-import React, { useEffect, useState } from 'react';
-import { Package, Coffee } from 'lucide-react';
+//SalesList.tsx
+import { Package, Coffee, User } from 'lucide-react';
 import type { Sale } from '../types/sales';
 import type { Product } from '../types/products';
+import type { Client } from '../types/clients';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+interface Props {
+  sales: Sale[];
+  loading: boolean;
+  products: Record<string, Product>;
+  clients: Record<string, Client>;
+}
 
-export default function SalesList() {
-  const [sales, setSales] = useState<Sale[]>([]);
-  const [products, setProducts] = useState<Record<string, Product>>({});
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'sealed' | 'prepared'>('all');
+function formatLocalDate(dateStr: string): string {
+  console.log('dateStr', dateStr);
 
-  // Recupera el club activo desde el localStorage
-  const storedClub = localStorage.getItem("mainClub");
-  const mainClub = storedClub ? JSON.parse(storedClub) : null;
+  // **Eliminar la 'Z' al final si existe para tratar la cadena como hora local**
+  const dateStrLocalTime = dateStr.endsWith('Z') ? dateStr.slice(0, -1) : dateStr;
 
-  useEffect(() => {
-    loadSales();
-    loadProducts();
-  }, []);
+  const date = new Date(dateStrLocalTime);
+  console.log('date', date);
 
-  const loadSales = async () => {
-    try {
-      // Se agrega el club como query parameter para filtrar las ventas
-      const clubQuery = mainClub && mainClub.id ? `?club=${mainClub.id}` : '';
-      const response = await fetch(`${API_BASE_URL}/api/sales${clubQuery}`);
-      if (!response.ok) throw new Error('Error fetching sales');
-      const data = await response.json();
-      // Mapea cada venta para asignar 'id' desde '_id'
-      const mappedSales = data.map((sale: any) => ({
-        ...sale,
-        id: sale._id,
-      }));
-      setSales(mappedSales);
-    } catch (error) {
-      console.error('Error loading sales:', error);
-    } finally {
-      setLoading(false);
+  const options: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hour12: true,
+  };
+
+  return date.toLocaleString(undefined, options);
+}
+
+export default function SalesList({ sales, loading, products, clients }: Props) {
+  const getClientTypeIcon = (type: string) => {
+    switch (type) {
+      case 'occasional': return '🔵';
+      case 'regular': return '🟢';
+      case 'wholesale': return '🟣';
+      default: return '⚪';
     }
   };
 
-  const loadProducts = async () => {
-    try {
-      // También filtramos productos por club
-      const clubQuery = mainClub && mainClub.id ? `?club=${mainClub.id}` : '';
-      const response = await fetch(`${API_BASE_URL}/api/products${clubQuery}`);
-      if (!response.ok) throw new Error('Error fetching products');
-      const data = await response.json();
-      const productsMap: Record<string, Product> = {};
-      data.forEach((product: any) => {
-        productsMap[product._id] = { ...product, id: product._id };
-      });
-      setProducts(productsMap);
-    } catch (error) {
-      console.error('Error loading products:', error);
-    }
-  };
+  if (loading) {
+    return (
+      <div className="p-8 text-center">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#2A5C9A]"></div>
+        <p className="mt-2 text-gray-500">Cargando ventas...</p>
+      </div>
+    );
+  }
 
-  const filteredSales = sales.filter((sale) => {
-    if (filter === 'all') return true;
-    return sale.items.some((item) => item.type === filter);
-  });
-
-  if (loading) return <p>Cargando ventas...</p>;
+  if (sales.length === 0) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-gray-500">
+          No hay ventas que coincidan con los filtros seleccionados
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-      <div className="px-4 py-5 border-b border-gray-200 sm:px-6">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg leading-6 font-medium text-gray-900">
-            Historial de Ventas
-          </h3>
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value as typeof filter)}
-            className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          >
-            <option value="all">Todas las ventas</option>
-            <option value="sealed">Solo productos sellados</option>
-            <option value="prepared">Solo preparados</option>
-          </select>
-        </div>
-      </div>
-      <ul className="divide-y divide-gray-200">
-        {filteredSales.map((sale) => (
-          <li key={sale.id} className="px-4 py-4">
+    <ul className="divide-y divide-gray-200">
+      {sales.map(sale => {
+        const saleId = sale.id || sale._id;
+        const client = sale.client_id ? clients[sale.client_id] : null;
+        return (
+          <li key={saleId} className="px-4 py-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-900">
-                  Venta #{sale.id.slice(0, 8)}
+                  Venta #{saleId.slice(0, 8)}
                 </p>
                 <p className="text-sm text-gray-500">
-                    {new Date(sale.created_at).toLocaleDateString('es-ES', { timeZone: 'UTC' })} {new Date(sale.created_at).toLocaleTimeString('es-ES', { timeZone: 'UTC' })}
+                  {formatLocalDate(sale.created_at)}
                 </p>
               </div>
               <div className="text-sm font-medium text-gray-900">
                 ${sale.total.toFixed(2)}
               </div>
             </div>
+            {client && (
+              <div className="mt-2 flex items-center text-sm text-gray-500">
+                <User className="h-4 w-4 text-gray-400 mr-1" />
+                <span>
+                  Cliente: {client.name} {getClientTypeIcon(client.type)}
+                </span>
+              </div>
+            )}
             <div className="mt-2">
               <div className="space-y-2">
-                {sale.items.map((item) => {
+                {sale.items.map(item => {
                   const product = products[item.product_id];
                   return (
                     <div key={item.id} className="flex items-center text-sm">
@@ -127,10 +118,9 @@ export default function SalesList() {
               )}
             </div>
           </li>
-        ))}
-      </ul>
-    </div>
+        );
+      })}
+    </ul>
   );
 }
-
 

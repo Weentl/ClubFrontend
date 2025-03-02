@@ -10,7 +10,7 @@ interface Props {
   onSave: (client: Client) => void;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 // Extraer el club actual del localStorage
 const mainClubStr = localStorage.getItem('mainClub');

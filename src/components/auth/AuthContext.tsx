@@ -3,11 +3,13 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
 interface User {
+  profileImage: User | null;
   id: string;
   fullName: string;
   email: string;
   businessType: string;
   isFirstLogin: boolean; // Add isFirstLogin to the User interface
+  
 }
 
 interface MainClub {
