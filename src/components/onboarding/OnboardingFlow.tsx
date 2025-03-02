@@ -53,6 +53,8 @@ export default function OnboardingFlow() {
 
   // Estado para agregar un club adicional
   const [clubInput, setClubInput] = useState<Club>({ clubName: '', address: '' });
+  // Estado para controlar la visibilidad del formulario de ingreso de club adicional
+  const [showClubInput, setShowClubInput] = useState(false);
 
   const handleNext = () => {
     if (step < 4) setStep(step + 1);
@@ -220,35 +222,66 @@ export default function OnboardingFlow() {
                       <p className="font-medium">{club.clubName}</p>
                       <p className="text-sm text-gray-500">{club.address}</p>
                     </div>
-                    <button onClick={() => removeClub(index)} type="button" className="text-red-500">
+                    <button
+                      onClick={() => removeClub(index)}
+                      type="button"
+                      className="text-red-500"
+                    >
                       <Trash size={16} />
                     </button>
                   </div>
                 ))}
-                <div className="flex flex-col space-y-2">
-                  <input
-                    type="text"
-                    placeholder="Nombre del club"
-                    className="p-2 border rounded"
-                    value={clubInput.clubName}
-                    onChange={(e) => setClubInput({ ...clubInput, clubName: e.target.value })}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Dirección"
-                    className="p-2 border rounded"
-                    value={clubInput.address}
-                    onChange={(e) => setClubInput({ ...clubInput, address: e.target.value })}
-                  />
+
+                {showClubInput ? (
+                  <div className="flex flex-col space-y-2">
+                    <input
+                      type="text"
+                      placeholder="Nombre del club"
+                      className="p-2 border rounded"
+                      value={clubInput.clubName}
+                      onChange={(e) =>
+                        setClubInput({ ...clubInput, clubName: e.target.value })
+                      }
+                    />
+                    <input
+                      type="text"
+                      placeholder="Dirección"
+                      className="p-2 border rounded"
+                      value={clubInput.address}
+                      onChange={(e) =>
+                        setClubInput({ ...clubInput, address: e.target.value })
+                      }
+                    />
+                    <div className="flex space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          addClub();
+                          setShowClubInput(false);
+                        }}
+                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Plus className="mr-2" />
+                        Agregar Club
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowClubInput(false)}
+                        className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
                   <button
                     type="button"
-                    onClick={addClub}
-                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+                    onClick={() => setShowClubInput(true)}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                   >
-                    <Plus className="mr-2" />
                     Agregar Club
                   </button>
-                </div>
+                )}
               </div>
             </div>
           </div>
@@ -318,5 +351,6 @@ export default function OnboardingFlow() {
     </div>
   );
 }
+
 
 
