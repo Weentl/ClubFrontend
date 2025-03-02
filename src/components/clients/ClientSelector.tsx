@@ -1,5 +1,5 @@
 // clientselector.tsx
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Search, User, Plus, X } from 'lucide-react';
 import { Client } from '../types/clients';
 import ClientFormModal from './ClientFormModal';

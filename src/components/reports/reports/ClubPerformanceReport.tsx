@@ -1,6 +1,6 @@
 // reports/ClubPerformanceReport.tsx
 import { useState, useEffect } from 'react';
-import { Search, Filter, Store, TrendingUp, TrendingDown } from 'lucide-react';
+import { Search, Filter, Store } from 'lucide-react';
 import ClubSelector from './ClubSelector';
 
 interface ClubData {

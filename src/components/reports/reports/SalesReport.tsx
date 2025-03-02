@@ -94,7 +94,6 @@ export default function SalesReport({ period }: SalesReportProps) {
   const paginatedSales = filteredSales.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   // Para el gráfico de ventas diarias
-  const maxDailySales = data.dailySales.length > 0 ? Math.max(...data.dailySales.map(d => d.sales)) : 0;
   const formattedDailySales = data.dailySales.map(day => ({
     ...day,
     formattedSales: `$${day.sales.toLocaleString()}`
@@ -164,12 +163,12 @@ export default function SalesReport({ period }: SalesReportProps) {
                   nameKey="name"
                   label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                 >
-                  {data.categoryData.map((entry, index) => (
+                  {data.categoryData.map((_entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Valor']} />
-                <Legend formatter={(value, entry, index) => (
+                <Legend formatter={(value, _entry, index) => (
                   <span style={{ color: '#4b5563', fontSize: '12px' }}>
                     {value} ({data.categoryData[index].percentage}%)
                   </span>

@@ -1,9 +1,9 @@
 // InventoryList.tsx
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AlertTriangle, Package, History, Edit3 } from 'lucide-react';
 import InventoryAdjustmentModal from './InventoryAdjustmentModal';
 import InventoryHistoryModal from './InventoryHistoryModal';
-import Sidebar from '../global/Sidebar';
+
 
 interface Product {
   _id: string;

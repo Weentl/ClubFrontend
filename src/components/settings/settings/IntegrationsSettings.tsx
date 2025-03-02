@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link2, Check, X } from 'lucide-react';
+import { Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // Datos simulados de integraciones

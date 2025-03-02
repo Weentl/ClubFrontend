@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { User, Mail, Lock, Building2 } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
+
 
 export default function RegisterForm() {
   const [formData, setFormData] = useState({

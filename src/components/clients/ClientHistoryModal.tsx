@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Calendar, DollarSign, ShoppingBag, Eye } from 'lucide-react';
 import { Client } from '../types/clients';
 import { Sale } from '../types/sales';

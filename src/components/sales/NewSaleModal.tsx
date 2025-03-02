@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Search, Package, Coffee, DollarSign, User } from 'lucide-react';
 import type { Product } from '../types/products';
 import type { SaleItem } from '../types/sales';
@@ -24,7 +24,7 @@ export default function NewSaleModal({ onClose, onSave }: Props) {
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedItems, setSelectedItems] = useState<SaleItem[]>([]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   useEffect(() => {
     loadProducts();

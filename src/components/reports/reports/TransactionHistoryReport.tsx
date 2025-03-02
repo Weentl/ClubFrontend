@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Filter, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
 import ClubSelector from './ClubSelector';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';

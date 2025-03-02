@@ -1,40 +1,14 @@
 import { useState } from 'react';
-import { CreditCard, AlertTriangle } from 'lucide-react';
-import toast from 'react-hot-toast';
+
 
 // Datos simulados de suscripción
-const subscriptionData = {
-  plan: 'Básico',
-  status: 'active',
-  startDate: '2024-05-15',
-  endDate: '2024-06-15',
-  features: [
-    'Hasta 3 Clubs',
-    '5 empleados registrados',
-    'Soporte prioritario',
-    'Reportes básicos'
-  ],
-  price: 29.99
-};
+
 
 export default function SubscriptionSettings() {
-  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showCancelModal] = useState(false);
 
   // Cálculos de días restantes y porcentaje de progreso
-  const today = new Date();
-  const endDate = new Date(subscriptionData.endDate);
-  const totalDays = 30;
-  const daysRemaining = Math.max(0, Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
-  const progressPercentage = Math.round((daysRemaining / totalDays) * 100);
 
-  const handleUpgrade = () => {
-    toast.success('Redirigiendo a la página de planes...');
-  };
-
-  const handleCancelSubscription = () => {
-    toast.success('Suscripción cancelada correctamente');
-    setShowCancelModal(false);
-  };
 
   // Contenido original de la página
   const content = (

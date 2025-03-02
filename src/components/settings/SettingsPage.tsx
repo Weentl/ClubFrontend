@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/Tabs';
 import SubscriptionSettings from './settings/SubscriptionSettings';
 import AccountSettings from './settings/AccountSettings';

@@ -211,7 +211,6 @@ export default function SalesPage() {
       [] // fila en blanco
     ];
     const salesData = filteredSales.map(sale => {
-      const saleId = sale.id || sale._id;
       const productsInfo = sale.items
         .map(item => {
           const productName = products[item.product_id]?.name || 'Producto desconocido';
@@ -244,7 +243,6 @@ export default function SalesPage() {
     doc.text(`Período: ${dateRange.start} - ${dateRange.end}`, 14, 46);
     const tableColumn = ['Fecha', 'Productos', 'Total', 'Cliente'];
     const tableRows = filteredSales.map(sale => {
-      const saleId = sale.id || sale._id;
       const productsInfo = sale.items
         .map(item => {
           const productName = products[item.product_id]?.name || 'Producto desconocido';

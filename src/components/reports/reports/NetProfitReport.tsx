@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Info } from 'lucide-react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 import ClubSelector from './ClubSelector';
 import NetProfitChart from './NetProfitChart';
 

@@ -1,5 +1,5 @@
 // clientlist.tsx
-import React, { useState, useEffect } from 'react';
+import  { useState, useEffect } from 'react';
 import { Search, Plus, Eye, Edit2, Phone } from 'lucide-react';
 import { Client } from '../types/clients';
 import ClientFormModal from './ClientFormModal';

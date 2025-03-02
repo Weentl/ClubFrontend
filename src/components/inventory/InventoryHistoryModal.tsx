@@ -1,5 +1,5 @@
 // InventoryHistoryModal.tsx
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import type { InventoryMovement } from '../types/inventory';
 import type { CombinedInventoryItem } from './InventoryList';

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Shield, Key, Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { Shield, Key, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // Datos simulados de seguridad
