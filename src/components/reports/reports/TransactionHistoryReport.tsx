@@ -1,6 +1,6 @@
-// reports/TransactionHistoryReport.tsx
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
+import ClubSelector from './ClubSelector';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -20,6 +20,11 @@ export interface Transaction {
 
 interface TransactionHistoryReportData {
   transactionsData: Transaction[];
+  periodLabel: string;
+  periodRange?: {
+    start: string;
+    end: string;
+  };
 }
 
 export default function TransactionHistoryReport({ period }: TransactionHistoryReportProps) {
@@ -28,14 +33,15 @@ export default function TransactionHistoryReport({ period }: TransactionHistoryR
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'sale' | 'expense' | 'adjustment'>('all');
   const [filterAmount, setFilterAmount] = useState<'all' | 'small' | 'medium' | 'large'>('all');
-  const [dateRange, setDateRange] = useState<{ start: string; end: string }>({
-    start: '2024-05-01',
-    end: '2024-05-31'
-  });
+  const [selectedClub, setSelectedClub] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${API_BASE_URL}/api/reports?type=transaction-history&period=${period}`)
+    let url = `${API_BASE_URL}/api/reports?type=transaction-history&period=${period}`;
+    if (selectedClub) {
+      url += `&club=${selectedClub}`;
+    }
+    fetch(url)
       .then((res) => res.json())
       .then((fetchedData: TransactionHistoryReportData) => {
         setData(fetchedData);
@@ -45,14 +51,14 @@ export default function TransactionHistoryReport({ period }: TransactionHistoryR
         console.error('Error fetching transaction history data:', err);
         setLoading(false);
       });
-  }, [period]);
+  }, [period, selectedClub]);
 
   if (loading) return <p>Cargando datos...</p>;
   if (!data) return <p>Error al cargar datos.</p>;
 
   const transactionsData = data.transactionsData;
 
-  // Filtrar transacciones
+  // Filtrar transacciones según búsqueda, tipo y monto.
   const filteredTransactions = transactionsData.filter(transaction => {
     const lowerSearch = searchTerm.toLowerCase();
     const matchesSearch =
@@ -60,6 +66,7 @@ export default function TransactionHistoryReport({ period }: TransactionHistoryR
       transaction.category.toLowerCase().includes(lowerSearch) ||
       (transaction.reference && transaction.reference.toLowerCase().includes(lowerSearch));
 
+    // Asegurar que el filtro por tipo funcione correctamente
     const matchesType = filterType === 'all' || transaction.type === filterType;
 
     const absAmount = Math.abs(transaction.amount);
@@ -69,34 +76,40 @@ export default function TransactionHistoryReport({ period }: TransactionHistoryR
       (filterAmount === 'medium' && absAmount >= 500 && absAmount < 1000) ||
       (filterAmount === 'large' && absAmount >= 1000);
 
-    const transactionDate = new Date(transaction.date);
-    const startDate = new Date(dateRange.start);
-    const endDate = new Date(dateRange.end);
-    endDate.setHours(23, 59, 59);
-    const matchesDate = transactionDate >= startDate && transactionDate <= endDate;
-
-    return matchesSearch && matchesType && matchesAmount && matchesDate;
+    return matchesSearch && matchesType && matchesAmount;
   });
 
-  // Calcular totales
+  // Calcular totales - Solo ventas para ingresos, solo gastos para egresos
   const totalInflow = filteredTransactions
-    .filter(t => t.amount > 0)
-    .reduce((sum, t) => sum + t.amount, 0);
-  const totalOutflow = filteredTransactions
-    .filter(t => t.amount < 0)
+    .filter(t => t.type === 'sale')
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    
+  const totalOutflow = filteredTransactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    
   const netFlow = totalInflow - totalOutflow;
+
+  // Formatear el rango de fechas para mostrar en formato DD/MM/YYYY - DD/MM/YYYY
+  const dateRangeDisplay = data.periodRange 
+    ? `${formatDisplayDate(data.periodRange.start)} - ${formatDisplayDate(data.periodRange.end)}`
+    : data.periodLabel;
 
   return (
     <div className="p-6">
+      {/* Encabezado con título, indicador del período y selector de club */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-gray-900">Historial de Movimientos</h2>
-        <span className="text-sm text-gray-500">
-          {period === 'weekly' ? 'Semana 20, 2024' : period === 'monthly' ? 'Mayo 2024' : '2024'}
-        </span>
+        <div className="flex flex-col items-end">
+          <div className="flex items-center text-sm text-gray-500">
+            <Calendar className="h-4 w-4 mr-1" />
+            <span>{dateRangeDisplay}</span>
+          </div>
+          <ClubSelector onClubChange={setSelectedClub} />
+        </div>
       </div>
 
-      {/* Tarjetas de resumen */}
+      {/* Tarjetas resumen */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <div className="bg-white border rounded-lg shadow-sm p-4">
           <div className="flex justify-between items-start">
@@ -165,7 +178,6 @@ export default function TransactionHistoryReport({ period }: TransactionHistoryR
               <option value="all">Todos los tipos</option>
               <option value="sale">Ventas</option>
               <option value="expense">Gastos</option>
-              <option value="adjustment">Ajustes</option>
             </select>
           </div>
           <div className="flex-1 min-w-[200px]">
@@ -180,34 +192,6 @@ export default function TransactionHistoryReport({ period }: TransactionHistoryR
               <option value="medium">Medianos ($500 - $1,000)</option>
               <option value="large">Grandes (&gt; $1,000)</option>
             </select>
-          </div>
-          <div className="flex-1 min-w-[200px]">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Rango de Fechas</label>
-            <div className="flex items-center space-x-2">
-              <div className="relative flex-1">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Calendar className="h-4 w-4 text-gray-400" />
-                </div>
-                <input
-                  type="date"
-                  value={dateRange.start}
-                  onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
-                />
-              </div>
-              <span className="text-gray-500">a</span>
-              <div className="relative flex-1">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Calendar className="h-4 w-4 text-gray-400" />
-                </div>
-                <input
-                  type="date"
-                  value={dateRange.end}
-                  onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
-                />
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -231,12 +215,16 @@ export default function TransactionHistoryReport({ period }: TransactionHistoryR
               {filteredTransactions.map((transaction) => (
                 <tr key={transaction.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(transaction.date).toLocaleDateString()}
+                    {/* Ajustar la fecha para gastos (añadir un día) */}
+                    {transaction.type === 'expense' 
+                      ? formatDate(adjustExpenseDate(transaction.date))
+                      : formatDate(transaction.date)
+                    }
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      transaction.type === 'sale' 
-                        ? 'bg-green-100 text-green-800' 
+                      transaction.type === 'sale'
+                        ? 'bg-green-100 text-green-800'
                         : transaction.type === 'expense'
                           ? 'bg-red-100 text-red-800'
                           : 'bg-yellow-100 text-yellow-800'
@@ -249,7 +237,7 @@ export default function TransactionHistoryReport({ period }: TransactionHistoryR
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{transaction.reference || '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <span className={`text-sm font-medium ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {transaction.amount > 0 ? '+' : ''}${transaction.amount.toLocaleString()}
+                      {transaction.amount > 0 ? '+' : ''}${Math.abs(transaction.amount).toLocaleString()}
                     </span>
                   </td>
                 </tr>
@@ -268,3 +256,27 @@ export default function TransactionHistoryReport({ period }: TransactionHistoryR
     </div>
   );
 }
+
+// Función para formatear fechas en formato DD/MM/YYYY para mostrar en la tabla
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('es-MX', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+}
+
+// Función para formatear fechas en formato DD/MM/YYYY para mostrar en el encabezado
+function formatDisplayDate(dateStr: string): string {
+  const [year, month, day] = dateStr.split('-');
+  return `${day}/${month}/${year}`;
+}
+
+// Función para ajustar la fecha de los gastos (añadir un día)
+function adjustExpenseDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  date.setDate(date.getDate() + 1); // Añadir un día
+  return date.toISOString();
+}
+

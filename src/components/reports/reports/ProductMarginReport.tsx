@@ -1,12 +1,11 @@
-// reports/ProductMarginReport.tsx
 import React, { useState, useEffect } from 'react';
+import moment from 'moment-timezone';
+import 'moment/locale/es'; // Configuramos moment en español
 import { Search, Filter, DollarSign, Package, Coffee } from 'lucide-react';
+import ClubSelector from './ClubSelector';
+import ProductMarginChart from './ProductMarginChart';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
-interface ProductMarginReportProps {
-  period: 'weekly' | 'monthly' | 'yearly';
-}
 
 export interface ProductData {
   id: string;
@@ -28,16 +27,50 @@ interface ProductMarginReportData {
   highestProfitProduct: ProductData;
 }
 
+interface ProductMarginReportProps {
+  period: 'weekly' | 'monthly' | 'yearly';
+}
+
 export default function ProductMarginReport({ period }: ProductMarginReportProps) {
   const [data, setData] = useState<ProductMarginReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [sortBy, setSortBy] = useState<'margin' | 'sales' | 'profit'>('margin');
+  const [clubId, setClubId] = useState<string | null>(null);
+
+  // Estado para la fecha actual y cálculo de rango según período
+  const mexicoTz = "America/Mexico_City";
+  const [currentDate, setCurrentDate] = useState(() => moment.tz(mexicoTz));
+
+  let startDate, endDate;
+  if (period === 'weekly') {
+    startDate = currentDate.clone().startOf('isoWeek');
+    endDate = currentDate.clone().endOf('isoWeek');
+  } else if (period === 'monthly') {
+    startDate = currentDate.clone().startOf('month');
+    endDate = currentDate.clone().endOf('month');
+  } else {
+    startDate = currentDate.clone().startOf('year');
+    endDate = currentDate.clone().endOf('year');
+  }
+
+  const periodLabel =
+    period === 'weekly'
+      ? `${startDate.format('DD/MM/YYYY')} - ${endDate.format('DD/MM/YYYY')}`
+      : period === 'monthly'
+      ? `${startDate.format('DD/MM/YYYY')} - ${endDate.format('DD/MM/YYYY')}`
+      : currentDate.format('YYYY');
+
+  // Función para recibir el club seleccionado
+  const handleClubChange = (selectedClub: string | null) => {
+    setClubId(selectedClub);
+  };
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${API_BASE_URL}/api/reports?type=product-margin&period=${period}`)
+    const clubParam = clubId ? `&club=${clubId}` : '';
+    fetch(`${API_BASE_URL}/api/reports?type=product-margin&period=${period}${clubParam}`)
       .then(res => res.json())
       .then((fetchedData: ProductMarginReportData) => {
         setData(fetchedData);
@@ -47,7 +80,7 @@ export default function ProductMarginReport({ period }: ProductMarginReportProps
         console.error('Error fetching product margin data:', err);
         setLoading(false);
       });
-  }, [period]);
+  }, [period, clubId]);
 
   if (loading) return <p>Cargando datos...</p>;
   if (!data) return <p>Error al cargar datos.</p>;
@@ -66,10 +99,11 @@ export default function ProductMarginReport({ period }: ProductMarginReportProps
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-gray-900">Margen de Ganancia por Producto</h2>
-        <span className="text-sm text-gray-500">
-          {period === 'weekly' ? 'Semana 20, 2024' : period === 'monthly' ? 'Mayo 2024' : '2024'}
-        </span>
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Margen de Ganancia por Producto</h2>
+          <span className="text-sm text-gray-500">{periodLabel}</span>
+        </div>
+        <ClubSelector onClubChange={handleClubChange} />
       </div>
 
       {/* Tarjetas de resumen */}
@@ -89,6 +123,9 @@ export default function ProductMarginReport({ period }: ProductMarginReportProps
           <p className="text-sm text-gray-500">${data.highestProfitProduct.totalProfit.toLocaleString()}</p>
         </div>
       </div>
+
+      {/* Añadimos el nuevo componente de gráfica aquí */}
+      <ProductMarginChart productsData={data.productsData} />
 
       {/* Filtros */}
       <div className="flex flex-wrap gap-2 mb-4">
@@ -210,3 +247,5 @@ export default function ProductMarginReport({ period }: ProductMarginReportProps
     </div>
   );
 }
+
+
