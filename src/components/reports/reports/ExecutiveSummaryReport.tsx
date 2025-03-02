@@ -1,6 +1,8 @@
 // reports/ExecutiveSummaryReport.tsx
 import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Package, DollarSign, Store } from 'lucide-react';
+import ClubSelector from './ClubSelector';
+import SalesExpenseChart from './SalesExpenseChart';
 
 interface ExecutiveSummaryData {
   netProfit: number;
@@ -25,6 +27,8 @@ interface ExecutiveSummaryData {
     text: string;
     type: 'positive' | 'negative' | 'neutral';
   }[];
+  totalSales: number;
+  totalExpenses: number;
   period: string;
 }
 
@@ -37,20 +41,25 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 export default function ExecutiveSummaryReport({ period }: ExecutiveSummaryReportProps) {
   const [data, setData] = useState<ExecutiveSummaryData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [clubId, setClubId] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${API_BASE_URL}/api/reports?type=executive-summary&period=${period}`)
-      .then((res) => res.json())
+    let url = `${API_BASE_URL}/api/reports?type=executive-summary&period=${period}`;
+    if (clubId) {
+      url += `&club=${clubId}`;
+    }
+    fetch(url)
+      .then(res => res.json())
       .then((data) => {
         setData(data);
         setLoading(false);
       })
-      .catch((err) => {
+      .catch(err => {
         console.error('Error al obtener los datos del reporte:', err);
         setLoading(false);
       });
-  }, [period]);
+  }, [period, clubId]);
 
   if (loading) {
     return <p>Cargando datos...</p>;
@@ -60,19 +69,18 @@ export default function ExecutiveSummaryReport({ period }: ExecutiveSummaryRepor
     return <p>No se pudo obtener la información.</p>;
   }
 
-  const periodText = period === 'weekly' ? 'esta semana' : period === 'monthly' ? 'este mes' : 'este año';
+  const periodLabel = data.period;
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-gray-900">Resumen Ejecutivo</h2>
-        <span className="text-sm text-gray-500">
-          {period === 'weekly' ? 'Semana actual' : period === 'monthly' ? 'Mayo 2024' : '2024'}
-        </span>
+        <ClubSelector onClubChange={setClubId} />
+        <span className="text-sm text-gray-500">{periodLabel}</span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {/* Ganancia neta */}
+        {/* Ganancia Neta */}
         <div className="bg-white border rounded-lg shadow-sm p-4">
           <div className="flex justify-between items-start">
             <div>
@@ -89,13 +97,13 @@ export default function ExecutiveSummaryReport({ period }: ExecutiveSummaryRepor
           </div>
           <div className="mt-2">
             <span className={`inline-flex items-center text-sm ${data.netProfitChange > 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {data.netProfitChange > 0 ? '↑' : '↓'} {Math.abs(data.netProfitChange)}%
+              {data.netProfitChange > 0 ? '↑' : '↓'} {Math.abs(data.netProfitChange).toFixed(2)}%
             </span>
             <span className="text-sm text-gray-500 ml-1">vs. período anterior</span>
           </div>
         </div>
 
-        {/* Producto estrella */}
+        {/* Producto Estrella */}
         <div className="bg-white border rounded-lg shadow-sm p-4">
           <div className="flex justify-between items-start">
             <div>
@@ -107,11 +115,11 @@ export default function ExecutiveSummaryReport({ period }: ExecutiveSummaryRepor
             </div>
           </div>
           <div className="mt-2 text-sm text-gray-500">
-            ${data.topProduct.sales.toLocaleString()} en ventas ({data.topProduct.percentage}% del total)
+            {data.topProduct.sales} en ventas (${data.topProduct.sales.toLocaleString()}) ({data.topProduct.percentage.toFixed(2)}% del total)
           </div>
         </div>
 
-        {/* Mayor gasto */}
+        {/* Mayor Gasto */}
         <div className="bg-white border rounded-lg shadow-sm p-4">
           <div className="flex justify-between items-start">
             <div>
@@ -123,11 +131,11 @@ export default function ExecutiveSummaryReport({ period }: ExecutiveSummaryRepor
             </div>
           </div>
           <div className="mt-2 text-sm text-gray-500">
-            ${data.topExpense.amount.toLocaleString()} ({data.topExpense.percentage}% del total)
+            ${data.topExpense.amount.toLocaleString()} ({data.topExpense.percentage.toFixed(2)}% del total)
           </div>
         </div>
 
-        {/* Club líder */}
+        {/* Club Líder */}
         <div className="bg-white border rounded-lg shadow-sm p-4">
           <div className="flex justify-between items-start">
             <div>
@@ -139,32 +147,23 @@ export default function ExecutiveSummaryReport({ period }: ExecutiveSummaryRepor
             </div>
           </div>
           <div className="mt-2 text-sm text-gray-500">
-            ${data.topClub.sales.toLocaleString()} en ventas ({data.topClub.percentage}% del total)
+            ${data.topClub.sales.toLocaleString()} en ventas ({data.topClub.percentage.toFixed(2)}% del total)
           </div>
         </div>
       </div>
 
-      {/* Gráfico principal */}
+      {/* Gráfica Resumen de Ventas vs Gastos */}
       <div className="bg-white border rounded-lg shadow-sm p-4 mb-8">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Resumen de Ventas vs Gastos</h3>
-        <div className="h-64 flex items-center justify-center bg-gray-50 rounded">
-          <p className="text-gray-500">Gráfico de ventas vs gastos {periodText}</p>
-        </div>
+        <SalesExpenseChart period={period} clubId={clubId} />
       </div>
 
       {/* Recomendaciones */}
       <div className="bg-white border rounded-lg shadow-sm p-4">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Recomendaciones</h3>
         <div className="space-y-3">
-          {data.recommendations.map((rec) => (
-            <div 
-              key={rec.id} 
-              className={`p-3 rounded-lg ${
-                rec.type === 'positive' ? 'bg-green-50 border-l-4 border-green-400' : 
-                rec.type === 'negative' ? 'bg-red-50 border-l-4 border-red-400' : 
-                'bg-blue-50 border-l-4 border-blue-400'
-              }`}
-            >
+          {data.recommendations.map(rec => (
+            <div key={rec.id} className={`p-3 rounded-lg ${rec.type === 'positive' ? 'bg-green-50 border-l-4 border-green-400' : rec.type === 'negative' ? 'bg-red-50 border-l-4 border-red-400' : 'bg-blue-50 border-l-4 border-blue-400'}`}>
               <p className="text-sm">{rec.text}</p>
             </div>
           ))}
@@ -173,3 +172,4 @@ export default function ExecutiveSummaryReport({ period }: ExecutiveSummaryRepor
     </div>
   );
 }
+

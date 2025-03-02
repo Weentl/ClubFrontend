@@ -1,12 +1,9 @@
-// reports/NetProfitReport.tsx
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Info } from 'lucide-react';
+import ClubSelector from './ClubSelector';
+import NetProfitChart from './NetProfitChart';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
-interface NetProfitReportProps {
-  period: 'weekly' | 'monthly' | 'yearly';
-}
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 interface MonthlySummary {
   month: string;
@@ -24,53 +21,142 @@ interface NetProfitData {
   changePercentage: number;
   isPositive: boolean;
   monthlySummary: MonthlySummary[];
+  // Añadimos estos campos opcionales para el rango de fechas
+  startDate?: string;
+  endDate?: string;
+}
+
+interface NetProfitReportProps {
+  period: 'weekly' | 'monthly' | 'yearly';
 }
 
 export default function NetProfitReport({ period }: NetProfitReportProps) {
   const [data, setData] = useState<NetProfitData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [clubId, setClubId] = useState<string | null>(null);
+
+  // Función para formatear el período en un formato más legible
+  const formatPeriodRange = (periodStr: string, periodType: string) => {
+    // Si ya tenemos fechas específicas en los datos, las usamos directamente
+    if (data?.startDate && data?.endDate) {
+      return `${formatDate(data.startDate)} - ${formatDate(data.endDate)}`;
+    }
+    
+    // Para semanas (ej. "Semana 9, 2025")
+    if (periodType === 'weekly' && periodStr.startsWith('Semana')) {
+      // Aquí calculamos las fechas basándonos en el número de semana
+      // Formato: "DD/MM/YYYY - DD/MM/YYYY"
+      const matches = periodStr.match(/Semana (\d+), (\d+)/);
+      if (matches && matches.length === 3) {
+        const weekNum = parseInt(matches[1], 10);
+        const year = parseInt(matches[2], 10);
+        
+        // Calcular fecha inicial (primer día de la semana)
+        const firstDayOfYear = new Date(year, 0, 1);
+        const daysOffset = (weekNum - 1) * 7;
+        const startDate = new Date(firstDayOfYear);
+        startDate.setDate(firstDayOfYear.getDate() + daysOffset - firstDayOfYear.getDay() + 1); // Ajustar al lunes
+        
+        // Calcular fecha final (último día de la semana)
+        const endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6); // Domingo
+        
+        return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+      }
+    }
+    
+    // Para meses (ej. "Febrero 2025")
+    if (periodType === 'monthly' && periodStr.includes('mes')) {
+      const monthNum = periodStr.match(/mes (\d+)/)?.[1];
+      if (monthNum) {
+        const monthNames = [
+          "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+          "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+        ];
+        const year = new Date().getFullYear(); // Asumimos el año actual si no está en el string
+        const month = parseInt(monthNum, 10) - 1; // Meses en JS son 0-indexed
+        
+        return monthNames[month] + " " + year;
+      }
+    }
+    
+    // Si no podemos formatear, devolvemos el string original
+    return periodStr;
+  };
+  
+  // Función para formatear una fecha como DD/MM/YYYY
+  const formatDate = (date: Date | string) => {
+    const d = date instanceof Date ? date : new Date(date);
+    return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+  };
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${API_BASE_URL}/api/reports?type=net-profit&period=${period}`)
-      .then((res) => res.json())
+    setError(null);
+    
+    let url = `${API_BASE_URL}/api/reports?type=net-profit&period=${period}`;
+    if (clubId) {
+      url += `&club=${clubId}`;
+    }
+    
+    fetch(url)
+      .then(async (res) => {
+        if (!res.ok) {
+          // Capturar errores HTTP
+          const errorText = await res.text();
+          throw new Error(`Error ${res.status}: ${errorText}`);
+        }
+        return res.json();
+      })
       .then((fetchedData: NetProfitData) => {
         setData(fetchedData);
         setLoading(false);
       })
       .catch((err) => {
         console.error('Error fetching net profit data:', err);
+        setError(err.message || 'Error al obtener datos');
         setLoading(false);
       });
-  }, [period]);
+  }, [period, clubId]);
 
-  if (loading) return <p>Cargando datos...</p>;
-  if (!data) return <p>Error al cargar datos.</p>;
+  if (loading) return <p className="p-6">Cargando datos...</p>;
+  if (error) return <p className="p-6 text-red-600">Error: {error}</p>;
+  if (!data) return <p className="p-6">No se encontraron datos.</p>;
 
-  const maxValue = Math.max(...data.monthlySummary.map(m => Math.max(m.sales, m.expenses, m.profit)));
+  // Formatear el período para mostrarlo de manera más clara
+  const formattedPeriod = formatPeriodRange(data.period, period);
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-gray-900">Reporte de Ganancias Netas</h2>
-        <span className="text-sm text-gray-500">{data.period}</span>
+        {/* Selector de clubes */}
+        <ClubSelector onClubChange={setClubId} />
+        <span className="text-sm text-gray-500">{formattedPeriod}</span>
       </div>
 
       {/* Tarjetas de resumen */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <div className="bg-white border rounded-lg shadow-sm p-4">
           <p className="text-sm font-medium text-gray-500">Ventas Totales</p>
-          <p className="mt-1 text-2xl font-semibold text-green-600">${data.totalSales.toLocaleString()}</p>
+          <p className="mt-1 text-2xl font-semibold text-green-600">
+            ${data.totalSales.toLocaleString()}
+          </p>
         </div>
         <div className="bg-white border rounded-lg shadow-sm p-4">
           <p className="text-sm font-medium text-gray-500">Gastos Totales</p>
-          <p className="mt-1 text-2xl font-semibold text-red-600">${data.totalExpenses.toLocaleString()}</p>
+          <p className="mt-1 text-2xl font-semibold text-red-600">
+            ${data.totalExpenses.toLocaleString()}
+          </p>
         </div>
         <div className="bg-white border rounded-lg shadow-sm p-4">
           <div className="flex justify-between">
             <div>
               <p className="text-sm font-medium text-gray-500">Ganancia Neta</p>
-              <p className="mt-1 text-2xl font-semibold text-blue-600">${data.netProfit.toLocaleString()}</p>
+              <p className="mt-1 text-2xl font-semibold text-blue-600">
+                ${data.netProfit.toLocaleString()}
+              </p>
             </div>
             <div className={`p-2 rounded-full ${data.isPositive ? 'bg-green-100' : 'bg-red-100'}`}>
               {data.isPositive ? (
@@ -89,64 +175,8 @@ export default function NetProfitReport({ period }: NetProfitReportProps) {
         </div>
       </div>
 
-      {/* Gráfico de barras */}
-      <div className="bg-white border rounded-lg shadow-sm p-4 mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Ventas vs Gastos vs Ganancias</h3>
-          <button className="text-gray-400 hover:text-gray-500">
-            <Info className="h-5 w-5" />
-          </button>
-        </div>
-        <div className="h-80">
-          <div className="flex h-64 items-end space-x-2">
-            {data.monthlySummary.map((m, index) => (
-              <div key={index} className="flex-1 flex flex-col items-center">
-                <div className="w-full flex flex-col-reverse">
-                  {/* Barra de ganancia */}
-                  <div 
-                    className="w-full bg-blue-500 rounded-t"
-                    style={{ 
-                      height: `${(m.profit / maxValue) * 100}%`,
-                      minHeight: m.profit > 0 ? '4px' : '0'
-                    }}
-                  ></div>
-                  {/* Barra de gastos */}
-                  <div 
-                    className="w-full bg-red-500 rounded-t"
-                    style={{ 
-                      height: `${(m.expenses / maxValue) * 100}%`,
-                      minHeight: m.expenses > 0 ? '4px' : '0'
-                    }}
-                  ></div>
-                  {/* Barra de ventas */}
-                  <div 
-                    className="w-full bg-green-500 rounded-t"
-                    style={{ 
-                      height: `${(m.sales / maxValue) * 100}%`,
-                      minHeight: m.sales > 0 ? '4px' : '0'
-                    }}
-                  ></div>
-                </div>
-                <div className="text-xs mt-2 text-gray-600">{m.month}</div>
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-center mt-4 space-x-6">
-            <div className="flex items-center">
-              <div className="w-3 h-3 bg-green-500 rounded mr-2"></div>
-              <span className="text-xs text-gray-600">Ventas</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-3 h-3 bg-red-500 rounded mr-2"></div>
-              <span className="text-xs text-gray-600">Gastos</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-3 h-3 bg-blue-500 rounded mr-2"></div>
-              <span className="text-xs text-gray-600">Ganancias</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Componente de gráfico */}
+      <NetProfitChart monthlySummary={data.monthlySummary} />
 
       {/* Análisis de tendencia */}
       <div className="bg-white border rounded-lg shadow-sm p-4">
