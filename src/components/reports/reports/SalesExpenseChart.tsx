@@ -12,6 +12,7 @@ import {
   Legend,
   Filler,
 } from 'chart.js';
+import { useAuthFetch } from '../../utils/authFetch';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
@@ -33,7 +34,7 @@ export default function SalesExpenseChart({ period, clubId }: SalesExpenseChartP
   const [loading, setLoading] = useState(true);
   console.log('period:', period);
   console.log('clubId:', clubId);
-  
+  const authFetch = useAuthFetch();
 
   useEffect(() => {
     setLoading(true);
@@ -41,11 +42,7 @@ export default function SalesExpenseChart({ period, clubId }: SalesExpenseChartP
     if (clubId) {
       url += `&club=${clubId}`;
     }
-    fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    })
+    authFetch(url)
       .then(res => res.json())
       .then(data => {
         setChartData(data);

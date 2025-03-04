@@ -4,6 +4,7 @@ import moment from 'moment-timezone';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Search, Filter, Package, Coffee } from 'lucide-react';
 import ClubSelector from './ClubSelector';
+import { useAuthFetch } from '../../utils/authFetch';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -41,7 +42,7 @@ export default function SalesReport({ period }: SalesReportProps) {
   const [loading, setLoading] = React.useState(true);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [filterClub, setFilterClub] = React.useState('all');
- 
+  const authFetch = useAuthFetch();
   const [selectedClub, setSelectedClub] = React.useState<string | null>('global');
   const [currentPage, setCurrentPage] = React.useState(1);
   const pageSize = 10;
@@ -70,11 +71,7 @@ export default function SalesReport({ period }: SalesReportProps) {
     if (selectedClub) {
       url += `&club=${selectedClub}`;
     }
-    fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    })
+    authFetch(url)
       .then(res => res.json())
       .then((fetchedData: SalesReportData) => {
         setData(fetchedData);

@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg-color: #ffffff;
+  --text-color: #1F2937;
+  --primary-color: #2A5C9A;
+}
+
 .dark {
-    color-scheme: dark;
-  }
+  --bg-color: #121212;
+  --text-color: #e5e7eb;
+  --primary-color: #1e4474;
+}
