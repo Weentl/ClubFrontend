@@ -33,7 +33,7 @@ export default function TransactionHistoryReport({ period }: TransactionHistoryR
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'sale' | 'expense' | 'adjustment'>('all');
   const [filterAmount, setFilterAmount] = useState<'all' | 'small' | 'medium' | 'large'>('all');
-  const [selectedClub, setSelectedClub] = useState<string | null>(null);
+  const [selectedClub, setSelectedClub] = useState<string | null>('global');
 
   useEffect(() => {
     setLoading(true);
@@ -41,7 +41,11 @@ export default function TransactionHistoryReport({ period }: TransactionHistoryR
     if (selectedClub) {
       url += `&club=${selectedClub}`;
     }
-    fetch(url)
+    fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    })
       .then((res) => res.json())
       .then((fetchedData: TransactionHistoryReportData) => {
         setData(fetchedData);

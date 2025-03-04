@@ -63,12 +63,13 @@ export default function ClubSelector({ onClubChange }: ClubSelectorProps) {
     setSelectedClub(value);
     if (value === 'global') {
       localStorage.removeItem('reportclub');
-      onClubChange(null);
+      onClubChange("global");
     } else {
       localStorage.setItem('reportclub', value);
       onClubChange(value);
     }
   };
+
 
   return (
     <div>

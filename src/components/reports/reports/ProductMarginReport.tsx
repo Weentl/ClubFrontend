@@ -37,7 +37,7 @@ export default function ProductMarginReport({ period }: ProductMarginReportProps
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [sortBy, setSortBy] = useState<'margin' | 'sales' | 'profit'>('margin');
-  const [clubId, setClubId] = useState<string | null>(null);
+  const [clubId, setClubId] = useState<string | null>('global');
 
   // Estado para la fecha actual y cálculo de rango según período
   const mexicoTz = "America/Mexico_City";
@@ -70,7 +70,11 @@ export default function ProductMarginReport({ period }: ProductMarginReportProps
   useEffect(() => {
     setLoading(true);
     const clubParam = clubId ? `&club=${clubId}` : '';
-    fetch(`${API_BASE_URL}/api/reports?type=product-margin&period=${period}${clubParam}`)
+    fetch(`${API_BASE_URL}/api/reports?type=product-margin&period=${period}${clubParam}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    })
       .then(res => res.json())
       .then((fetchedData: ProductMarginReportData) => {
         setData(fetchedData);

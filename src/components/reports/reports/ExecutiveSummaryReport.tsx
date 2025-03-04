@@ -41,7 +41,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 export default function ExecutiveSummaryReport({ period }: ExecutiveSummaryReportProps) {
   const [data, setData] = useState<ExecutiveSummaryData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [clubId, setClubId] = useState<string | null>(null);
+  const [clubId, setClubId] = useState<string | null>('global');
 
   useEffect(() => {
     setLoading(true);
@@ -49,7 +49,11 @@ export default function ExecutiveSummaryReport({ period }: ExecutiveSummaryRepor
     if (clubId) {
       url += `&club=${clubId}`;
     }
-    fetch(url)
+    fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    })
       .then(res => res.json())
       .then((data) => {
         setData(data);

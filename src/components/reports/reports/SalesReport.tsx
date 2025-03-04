@@ -41,10 +41,11 @@ export default function SalesReport({ period }: SalesReportProps) {
   const [loading, setLoading] = React.useState(true);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [filterClub, setFilterClub] = React.useState('all');
-  const [selectedClub, setSelectedClub] = React.useState<string | null>(null);
+ 
+  const [selectedClub, setSelectedClub] = React.useState<string | null>('global');
   const [currentPage, setCurrentPage] = React.useState(1);
   const pageSize = 10;
-
+  
   // Calcular el período dinámicamente usando moment-timezone
   let periodLabel = '';
   const tz = "America/Mexico_City";
@@ -69,7 +70,11 @@ export default function SalesReport({ period }: SalesReportProps) {
     if (selectedClub) {
       url += `&club=${selectedClub}`;
     }
-    fetch(url)
+    fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    })
       .then(res => res.json())
       .then((fetchedData: SalesReportData) => {
         setData(fetchedData);

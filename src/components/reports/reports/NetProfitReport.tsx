@@ -34,7 +34,7 @@ export default function NetProfitReport({ period }: NetProfitReportProps) {
   const [data, setData] = useState<NetProfitData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [clubId, setClubId] = useState<string | null>(null);
+  const [clubId, setClubId] = useState<string | null>("global");
 
   // Función para formatear el período en un formato más legible
   const formatPeriodRange = (periodStr: string, periodType: string) => {
@@ -100,7 +100,11 @@ export default function NetProfitReport({ period }: NetProfitReportProps) {
       url += `&club=${clubId}`;
     }
     
-    fetch(url)
+    fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    })
       .then(async (res) => {
         if (!res.ok) {
           // Capturar errores HTTP

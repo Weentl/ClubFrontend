@@ -32,7 +32,7 @@ export default function ClubPerformanceReport({ period }: ClubPerformanceReportP
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('all');
-  const [selectedClub, setSelectedClub] = useState<string | null>(null);
+  const [selectedClub, setSelectedClub] = useState<string | null>('global');
 
   useEffect(() => {
     setLoading(true);
@@ -40,7 +40,11 @@ export default function ClubPerformanceReport({ period }: ClubPerformanceReportP
     if (selectedClub) {
       url += `&club=${selectedClub}`;
     }
-    fetch(url)
+    fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    })
       .then((res) => res.json())
       .then((fetchedData: ClubPerformanceReportData) => {
         setData(fetchedData);

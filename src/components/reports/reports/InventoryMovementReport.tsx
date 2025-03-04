@@ -45,7 +45,7 @@ export default function InventoryMovementReport({ period }: InventoryMovementRep
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterAlert, setFilterAlert] = useState(false);
-  const [club, setClub] = useState<string | null>(null);
+  const [club, setClub] = useState<string | null>('global');
 
   // Calcular el rango de fechas según el período:
   // Para semanal se usa isoWeek (lunes a domingo)
@@ -69,7 +69,11 @@ export default function InventoryMovementReport({ period }: InventoryMovementRep
     if (club) {
       url += `&club=${club}`;
     }
-    fetch(url)
+    fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    })
       .then((res) => res.json())
       .then((fetchedData: InventoryMovementReportData) => {
         setData(fetchedData);

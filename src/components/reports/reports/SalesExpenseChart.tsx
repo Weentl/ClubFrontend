@@ -38,7 +38,11 @@ export default function SalesExpenseChart({ period, clubId }: SalesExpenseChartP
     if (clubId) {
       url += `&club=${clubId}`;
     }
-    fetch(url)
+    fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    })
       .then(res => res.json())
       .then(data => {
         setChartData(data);

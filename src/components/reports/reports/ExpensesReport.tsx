@@ -37,7 +37,7 @@ export default function ExpensesReport({ period }: ExpensesReportProps) {
   const [filterCategory, setFilterCategory] = useState('all');
   const [data, setData] = useState<ExpensesReportData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedClub, setSelectedClub] = useState<string | null>(null);
+  const [selectedClub, setSelectedClub] = useState<string | null>('global');
 
   // Calcular el período dinámicamente usando moment‑timezone en "America/Mexico_City"
   const tz = "America/Mexico_City";
@@ -63,7 +63,11 @@ export default function ExpensesReport({ period }: ExpensesReportProps) {
     if (selectedClub) {
       url += `&club=${selectedClub}`;
     }
-    fetch(url)
+    fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    })
       .then(res => res.json())
       .then((fetchedData: ExpensesReportData) => {
         setData(fetchedData);

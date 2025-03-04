@@ -34,7 +34,7 @@ export default function CashFlowReport({ period }: CashFlowReportProps) {
   const [data, setData] = useState<CashFlowReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<CashFlowDay | null>(null);
-  const [clubId, setClubId] = useState<string | null>(null);
+  const [clubId, setClubId] = useState<string | null>('global');
 
   // Cálculo de fechas según el período y currentDate
   let startDate, endDate;
@@ -89,7 +89,11 @@ export default function CashFlowReport({ period }: CashFlowReportProps) {
     setLoading(true);
     const clubParam = clubId ? `&club=${clubId}` : '';
     const dateParam = `&date=${currentDate.toISOString()}`;
-    fetch(`${API_BASE_URL}/api/reports?type=cash-flow&period=${period}${clubParam}${dateParam}`)
+    fetch(`${API_BASE_URL}/api/reports?type=cash-flow&period=${period}${clubParam}${dateParam}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    })
       .then((res) => res.json())
       .then((fetchedData: CashFlowReportData) => {
         setData(fetchedData);
