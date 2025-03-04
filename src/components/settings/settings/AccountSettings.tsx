@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { User, Mail, Phone, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuthFetch } from '../../utils/authFetch';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -12,7 +13,7 @@ export default function AccountSettings() {
   });
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const authFetch = useAuthFetch();
   // Extraer el objeto "user" del localStorage y obtener su id
   const storedUser = localStorage.getItem('user');
   const userId = storedUser ? JSON.parse(storedUser).id : null;
@@ -24,7 +25,7 @@ export default function AccountSettings() {
     }
     async function fetchUser() {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/users/${userId}`);
+        const res = await  authFetch(`${API_BASE_URL}/api/users/${userId}`);
         if (res.ok) {
           const data = await res.json();
           setFormData({
@@ -66,7 +67,7 @@ export default function AccountSettings() {
       imageFormData.append('logo', file);
 
       try {
-        const res = await fetch(`${API_BASE_URL}/api/users/${userId}/logo`, {
+        const res = await  authFetch(`${API_BASE_URL}/api/users/${userId}/logo`, {
           method: 'POST',
           body: imageFormData
         });
@@ -90,7 +91,7 @@ export default function AccountSettings() {
       return;
     }
     try {
-      const res = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
+      const res = await  authFetch(`${API_BASE_URL}/api/users/${userId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'

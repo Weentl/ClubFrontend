@@ -1,6 +1,7 @@
 // src/components/products/ProductList.tsx
 import { useEffect, useState } from 'react';
 import { Package, Edit, Trash2 } from 'lucide-react';
+import { useAuthFetch } from '../utils/authFetch';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -10,7 +11,7 @@ export default function ProductList() {
   // Recupera el club principal desde el localStorage
   const storedClub = localStorage.getItem("mainClub");
   const mainClub = storedClub ? JSON.parse(storedClub) : null;
-
+  const authFetch = useAuthFetch();
   useEffect(() => {
     if (mainClub && mainClub.id) {
       loadProducts();
@@ -19,7 +20,7 @@ export default function ProductList() {
 
   const loadProducts = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/products?club=${mainClub.id}`);
+      const res = await authFetch(`${API_BASE_URL}/api/products?club=${mainClub.id}`);
       if (!res.ok) {
         throw new Error('Error al cargar los productos');
       }

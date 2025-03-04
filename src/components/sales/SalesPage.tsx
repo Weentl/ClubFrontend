@@ -13,6 +13,7 @@ import type { Client } from '../types/clients';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { useAuthFetch } from '../utils/authFetch';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -49,7 +50,7 @@ export default function SalesPage() {
   const token = localStorage.getItem('token');
   const storedUser = localStorage.getItem('user');
   const user = storedUser ? JSON.parse(storedUser) : {};
-
+  const authFetch = useAuthFetch();
   const [showNewSaleModal, setShowNewSaleModal] = useState(false);
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,7 +108,7 @@ export default function SalesPage() {
 
   const loadProducts = async () => {
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/api/products?club=${activeClub.id}`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -136,7 +137,7 @@ export default function SalesPage() {
 
   const loadClients = async () => {
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/api/clients?club=${activeClub.id}`,
         {
           headers: { 'Authorization': `Bearer ${token}` }

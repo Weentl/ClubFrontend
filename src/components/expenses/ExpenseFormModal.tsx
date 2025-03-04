@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, Calendar, DollarSign, FileText, User, Upload } from 'lucide-react';
 import { Expense, ExpenseFormData } from '../types/expenses';
 import toast from 'react-hot-toast';
+import { useAuthFetch } from '../utils/authFetch';
 
 interface Props {
   expense?: Expense;
@@ -48,7 +49,7 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
     is_recurring: expense?.is_recurring || false,
     receipt_url: expense?.receipt_url || '',
   });
-
+  const authFetch = useAuthFetch();
   const [receiptPreview, setReceiptPreview] = useState<string | null>(expense?.receipt_url || null);
   const [supplierSuggestions, setSupplierSuggestions] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -100,7 +101,7 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
   // Buscar productos según el club y el query ingresado (se asume que existe este endpoint)
   const fetchProductSuggestions = async (query: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/products?club=${clubId}&q=${query}`);
+      const response = await authFetch(`${API_BASE_URL}/api/products?club=${clubId}&q=${query}`);
       if (response.ok) {
         const products = await response.json();
         setProductSuggestions(products);
@@ -192,7 +193,7 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
           update_catalog_price: false,
           club: clubId,
         };
-        const adjustResponse = await fetch(`${API_BASE_URL}/api/inventory/adjust`, {
+        const adjustResponse = await authFetch(`${API_BASE_URL}/api/inventory/adjust`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(adjustPayload),

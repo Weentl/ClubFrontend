@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { X, User, Phone, Mail, Tag } from 'lucide-react';
 import { Client, ClientFormData } from '../types/clients';
-import axios from 'axios';
+import axiosInstance from '../utils/axiosInstance';
 
 interface Props {
   client?: Client;
@@ -23,6 +23,7 @@ const PREFERENCES = [
 ];
 
 export default function ClientFormModal({ client, onClose, onSave }: Props) {
+  
   const [formData, setFormData] = useState<ClientFormData>({
     name: client?.name || '',
     phone: client?.phone || '',
@@ -38,14 +39,14 @@ export default function ClientFormModal({ client, onClose, onSave }: Props) {
     try {
       if (client) {
         // Actualizar cliente existente
-        const response = await axios.patch(`${API_BASE_URL}/api/clients/${client.id || client._id}`, formData);
+        const response = await axiosInstance.patch(`${API_BASE_URL}/api/clients/${client.id || client._id}`, formData);
         // Mapear _id a id en caso de ser necesario
         const updatedClient = { ...response.data, id: response.data._id };
         onSave(updatedClient);
       } else {
         // Al crear un cliente nuevo, incluir club_id
         const payload = { ...formData, club_id: CLUB_ID };
-        const response = await axios.post(`${API_BASE_URL}/api/clients`, payload);
+        const response = await axiosInstance.post(`${API_BASE_URL}/api/clients`, payload);
         // Mapear _id a id para que el cliente tenga la propiedad id definida
         const newClient = { ...response.data, id: response.data._id };
         onSave(newClient);

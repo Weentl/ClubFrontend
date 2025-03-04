@@ -4,7 +4,7 @@ import { Search, Plus, Eye, Edit2, Phone } from 'lucide-react';
 import { Client } from '../types/clients';
 import ClientFormModal from './ClientFormModal';
 import ClientHistoryModal from './ClientHistoryModal';
-import axios from 'axios';
+import axiosInstance from '../utils/axiosInstance';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 // Extraer club actual del localStorage
@@ -12,6 +12,7 @@ const mainClubStr = localStorage.getItem('mainClub');
 const CLUB_ID = mainClubStr ? JSON.parse(mainClubStr).id : null;
 
 export default function ClientsList() {
+  
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -27,7 +28,7 @@ export default function ClientsList() {
 
   const loadClients = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/clients`, {
+      const response = await axiosInstance.get(`${API_BASE_URL}/api/clients`, {
         params: { club_id: CLUB_ID },
       });
       setClients(response.data);

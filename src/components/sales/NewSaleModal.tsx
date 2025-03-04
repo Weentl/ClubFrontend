@@ -6,6 +6,7 @@ import ClientSelector from '../clients/ClientSelector';
 import { Client } from '../types/clients';
 import toast from 'react-hot-toast';
 import axios from 'axios';
+import axiosInstance from '../utils/axiosInstance';
 
 interface Props {
   onClose: () => void;
@@ -25,6 +26,7 @@ export default function NewSaleModal({ onClose, onSave }: Props) {
   const [selectedItems, setSelectedItems] = useState<SaleItem[]>([]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [, setLoading] = useState(true);
+  
 
   useEffect(() => {
     loadProducts();
@@ -143,12 +145,12 @@ export default function NewSaleModal({ onClose, onSave }: Props) {
       console.log('Creating sale:', saleData);
 
       // Conexión al backend: POST /api/sales
-      await axios.post(`${API_BASE_URL}/api/sales`, saleData);
+      await axiosInstance.post(`${API_BASE_URL}/api/sales`, saleData);
 
       // Actualizar el total gastado y la última compra del cliente seleccionado (si existe)
       if (selectedClient && (selectedClient.id || selectedClient._id)) {
         const clientId = selectedClient.id || selectedClient._id;
-        await axios.patch(`${API_BASE_URL}/api/clients/${clientId}`, {
+        await axiosInstance.patch(`${API_BASE_URL}/api/clients/${clientId}`, {
           total_spent: selectedClient.total_spent + total,
           last_purchase: new Date().toISOString(),
         });

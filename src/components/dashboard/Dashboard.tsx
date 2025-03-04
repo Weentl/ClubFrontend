@@ -22,6 +22,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import { useAuthFetch } from '../utils/authFetch';
 
 ChartJS.register(
   CategoryScale,
@@ -66,6 +67,7 @@ interface BusinessGoal {
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function Dashboard() {
+  const authFetch = useAuthFetch();
   const [showClubSelector, setShowClubSelector] = useState(false);
   const [clubs, setClubs] = useState<Club[]>([]);
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
@@ -128,7 +130,7 @@ export default function Dashboard() {
 
   const fetchClubs = async (userId: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/clubs?user=${userId}`);
+      const response = await authFetch(`${API_BASE_URL}/api/clubs?user=${userId}`);
       if (!response.ok) throw new Error('Error al obtener los clubs');
       const data = await response.json();
       setClubs(data);
@@ -140,7 +142,7 @@ export default function Dashboard() {
   const fetchKPIs = async (clubId: string) => {
     try {
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/api/dashboard/kpis?club=${clubId}&timezone=${timezone}&user=${user?.id}`
       );
       if (!response.ok) throw new Error('No hay suficientes datos');
@@ -184,7 +186,7 @@ export default function Dashboard() {
   const fetchChartData = async () => {
     if (!selectedClub?._id) return;
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/api/dashboard/chart-data?club=${selectedClub._id}&chartType=${encodeURIComponent(
           chartType
         )}&timePeriod=${timePeriod}`
@@ -202,7 +204,7 @@ export default function Dashboard() {
   const fetchBusinessGoal = async () => {
     if (!selectedClub?._id) return;
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/api/dashboard/business-goals?club=${selectedClub._id}`
       );
       if (!response.ok) throw new Error('Error al obtener la meta del negocio');
@@ -219,7 +221,7 @@ export default function Dashboard() {
   const updateBusinessGoal = async () => {
     if (!selectedClub?._id) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/api/dashboard/business-goals`, {
+      const response = await authFetch(`${API_BASE_URL}/api/dashboard/business-goals`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ club: selectedClub._id, sales_goal: newGoal }),

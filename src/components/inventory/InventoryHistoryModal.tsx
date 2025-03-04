@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import type { InventoryMovement } from '../types/inventory';
 import type { CombinedInventoryItem } from './InventoryList';
+import { useAuthFetch } from '../utils/authFetch';
 
 interface Props {
   item: CombinedInventoryItem;
@@ -27,7 +28,7 @@ export default function InventoryHistoryModal({ item, onClose }: Props) {
   // Recupera el club principal desde el localStorage
   const storedClub = localStorage.getItem("mainClub");
   const mainClub = storedClub ? JSON.parse(storedClub) : null;
-
+  const authFetch = useAuthFetch();
   useEffect(() => {
     loadMovements();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -37,7 +38,7 @@ export default function InventoryHistoryModal({ item, onClose }: Props) {
     try {
       // Si el backend soporta filtrar por club, se puede enviar como query parameter
       const clubQuery = mainClub && mainClub.id ? `?club=${mainClub.id}` : '';
-      const res = await fetch(`${API_BASE_URL}/api/inventory/movements/${item._id}${clubQuery}`);
+      const res = await authFetch(`${API_BASE_URL}/api/inventory/movements/${item._id}${clubQuery}`);
       if (!res.ok) {
         throw new Error('Error al cargar movimientos');
       }

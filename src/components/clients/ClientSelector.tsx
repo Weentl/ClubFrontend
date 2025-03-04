@@ -1,9 +1,11 @@
 // clientselector.tsx
 import { useState, useEffect, useRef } from 'react';
-import { Search, User, Plus, X } from 'lucide-react';
+import { Search, Plus, X } from 'lucide-react';
 import { Client } from '../types/clients';
 import ClientFormModal from './ClientFormModal';
-import axios from 'axios';
+import axiosInstance from '../utils/axiosInstance';
+
+
 
 interface Props {
   onSelectClient: (client: Client | null) => void;
@@ -22,6 +24,7 @@ export default function ClientSelector({ onSelectClient, selectedClient }: Props
   const [showDropdown, setShowDropdown] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
 
   useEffect(() => {
     loadClients();
@@ -51,7 +54,7 @@ export default function ClientSelector({ onSelectClient, selectedClient }: Props
 
   const loadClients = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/clients`, {
+      const response = await axiosInstance.get(`${API_BASE_URL}/api/clients`, {
         params: { club_id: CLUB_ID },
       });
       const data = response.data.map((client: any) => ({

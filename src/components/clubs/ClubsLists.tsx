@@ -6,6 +6,7 @@ import ClubFormModal from './ClubFormModal';
 import EmployeesModal from './EmployeesModal';
 import toast from 'react-hot-toast';
 
+
 export default function ClubsList() {
   const [clubs, setClubs] = useState<Club[]>([]);
   const [loading, setLoading] = useState(true);

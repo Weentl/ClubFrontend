@@ -3,7 +3,7 @@ import { X, Calendar, DollarSign, ShoppingBag, Eye } from 'lucide-react';
 import { Client } from '../types/clients';
 import { Sale } from '../types/sales';
 import { Product } from '../types/products';
-import axios from 'axios';
+import axiosInstance from '../utils/axiosInstance';
 
 interface Props {
   client: Client;
@@ -21,6 +21,7 @@ export default function ClientHistoryModal({ client, onClose }: Props) {
   const [loading, setLoading] = useState(true);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  
 
   // Usar client.id o client._id según corresponda
   const clientId = client.id || client._id;
@@ -41,7 +42,7 @@ export default function ClientHistoryModal({ client, onClose }: Props) {
   const loadClientSales = async () => {
     try {
       // Se usa el identificador correcto del cliente
-      const response = await axios.get(`${API_BASE_URL}/api/clients/${clientId}/sales`);
+      const response = await axiosInstance.get(`${API_BASE_URL}/api/clients/${clientId}/sales`);
       setSales(response.data);
     } catch (error) {
       console.error('Error loading client sales:', error);
@@ -54,7 +55,7 @@ export default function ClientHistoryModal({ client, onClose }: Props) {
     try {
       // Si el endpoint de productos requiere filtrar por club, se agrega el query parameter
       const clubQuery = mainClub && mainClub.id ? `?club=${mainClub.id}` : '';
-      const response = await axios.get(`${API_BASE_URL}/api/products${clubQuery}`);
+      const response = await axiosInstance.get(`${API_BASE_URL}/api/products${clubQuery}`);
       // Mapear _id a id en caso de ser necesario
       const mappedProducts = response.data.map((prod: any) => ({
         ...prod,

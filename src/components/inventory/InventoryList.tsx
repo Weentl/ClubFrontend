@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { AlertTriangle, Package, History, Edit3 } from 'lucide-react';
 import InventoryAdjustmentModal from './InventoryAdjustmentModal';
 import InventoryHistoryModal from './InventoryHistoryModal';
+import { useAuthFetch } from '../utils/authFetch';
 
 
 interface Product {
@@ -34,7 +35,7 @@ export default function InventoryList() {
   const [selectedItem, setSelectedItem] = useState<CombinedInventoryItem | null>(null);
   const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
-
+  const authFetch = useAuthFetch();
   // Recupera el club principal desde el localStorage
   const storedClub = localStorage.getItem("mainClub");
   const mainClub = storedClub ? JSON.parse(storedClub) : null;
@@ -47,11 +48,11 @@ export default function InventoryList() {
     }
     try {
       // Obtener los productos filtrados por club
-      const productsResponse = await fetch(`${API_BASE_URL}/api/products?club=${mainClub.id}`);
+      const productsResponse = await authFetch(`${API_BASE_URL}/api/products?club=${mainClub.id}`);
       const products: Product[] = await productsResponse.json();
 
       // Obtener el inventario filtrado por club
-      const inventoryResponse = await fetch(`${API_BASE_URL}/api/inventory?club=${mainClub.id}`);
+      const inventoryResponse = await authFetch(`${API_BASE_URL}/api/inventory?club=${mainClub.id}`);
       const inventoryData: InventoryItem[] = await inventoryResponse.json();
 
       const combined = products

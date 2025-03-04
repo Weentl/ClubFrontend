@@ -1,5 +1,6 @@
 // components/ClubSelector.tsx
 import { useEffect, useState } from 'react';
+import { useAuthFetch } from '../../utils/authFetch';
 
 interface Club {
   _id: string;
@@ -18,6 +19,7 @@ export default function ClubSelector({ onClubChange }: ClubSelectorProps) {
   const [clubs, setClubs] = useState<Club[]>([]);
   const [selectedClub, setSelectedClub] = useState<string>('global');
   const [userId, setUserId] = useState<string | null>(null);
+  const authFetch = useAuthFetch();
 
   // Al iniciar, intenta leer el usuario y el club guardado en localStorage
   useEffect(() => {
@@ -46,7 +48,7 @@ export default function ClubSelector({ onClubChange }: ClubSelectorProps) {
 
   useEffect(() => {
     if (!userId) return;
-    fetch(`${API_BASE_URL}/api/clubs?user=${userId}`)
+    authFetch(`${API_BASE_URL}/api/clubs?user=${userId}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.error) {

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import type { InventoryAdjustmentData } from '../types/inventory';
 import type { CombinedInventoryItem } from './InventoryList';
+import { useAuthFetch } from '../utils/authFetch';
 
 interface Props {
   item: CombinedInventoryItem;
@@ -24,7 +25,7 @@ export default function InventoryAdjustmentModal({ item, onClose }: Props) {
   // Recupera el club principal desde el localStorage
   const storedClub = localStorage.getItem("mainClub");
   const mainClub = storedClub ? JSON.parse(storedClub) : null;
-
+  const authFetch = useAuthFetch();
   const [adjustment, setAdjustment] = useState<InventoryAdjustmentData>({
     quantity: 0,
     type: 'restock',
@@ -41,7 +42,7 @@ export default function InventoryAdjustmentModal({ item, onClose }: Props) {
       return;
     }
     try {
-      const response = await fetch(`${API_BASE_URL}/api/inventory/adjust`, {
+      const response = await authFetch(`${API_BASE_URL}/api/inventory/adjust`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

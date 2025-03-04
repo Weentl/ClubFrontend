@@ -1,4 +1,5 @@
 import axios from 'axios';
+import axiosInstance from '../components/utils/axiosInstance';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -15,7 +16,7 @@ export const api = {
   // Clientes
   getClients: async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/clients`);
+      const response = await axiosInstance.get(`${API_BASE_URL}/api/clients`);
       return response.data;
     } catch (error) {
       console.error('Error fetching clients:', error);
@@ -24,7 +25,7 @@ export const api = {
   },
   getClient: async (id: string) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/clients/${id}`);
+      const response = await axiosInstance.get(`${API_BASE_URL}/api/clients/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching client ${id}:`, error);
@@ -33,7 +34,7 @@ export const api = {
   },
   createClient: async (clientData: any) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/clients`, clientData);
+      const response = await axiosInstance.post(`${API_BASE_URL}/api/clients`, clientData);
       return response.data;
     } catch (error) {
       console.error('Error creating client:', error);
@@ -42,7 +43,7 @@ export const api = {
   },
   updateClient: async (id: string, clientData: any) => {
     try {
-      const response = await axios.patch(`${API_BASE_URL}/api/clients/${id}`, clientData);
+      const response = await axiosInstance.patch(`${API_BASE_URL}/api/clients/${id}`, clientData);
       return response.data;
     } catch (error) {
       console.error(`Error updating client ${id}:`, error);
@@ -51,7 +52,7 @@ export const api = {
   },
   getClientSales: async (clientId: string) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/clients/${clientId}/sales`);
+      const response = await axiosInstance.get(`${API_BASE_URL}/api/clients/${clientId}/sales`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching sales for client ${clientId}:`, error);
@@ -62,7 +63,7 @@ export const api = {
   // Producto: obtiene los datos de un producto para extraer el nombre.
   getProductName: async (productId: string) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/products/${productId}`);
+      const response = await axiosInstance.get(`${API_BASE_URL}/products/${productId}`);
       return response.data.name;
     } catch (error) {
       console.error('Error fetching product name:', error);

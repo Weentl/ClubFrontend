@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Package, Upload, DollarSign } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuthFetch } from '../utils/authFetch';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -28,7 +29,7 @@ export default function ProductForm() {
     salePrice: 0,
   });
   const [imagePreview, setImagePreview] = useState<string>('');
-
+  const authFetch = useAuthFetch();
   // Recupera el club principal desde el localStorage
   const storedClub = localStorage.getItem("mainClub");
   const mainClub = storedClub ? JSON.parse(storedClub) : null;
@@ -71,7 +72,7 @@ export default function ProductForm() {
         formDataToSend.append('image', formData.image);
       }
 
-      const res = await fetch(`${API_BASE_URL}/api/products`, {
+      const res = await authFetch(`${API_BASE_URL}/api/products`, {
         method: 'POST',
         body: formDataToSend,
       });

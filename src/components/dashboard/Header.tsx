@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Bell, User, ChevronDown, Settings, LogOut, UserCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { useAuthFetch } from '../utils/authFetch';
 
 interface Notification {
   id: string;
@@ -17,6 +18,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function Header({ userName }: { userName: string }) {
   const { signOut } = useAuth();
+  const authFetch = useAuthFetch();
   const [profileImage, setProfileImage] = useState<string>('');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -39,7 +41,7 @@ export default function Header({ userName }: { userName: string }) {
     if (storedUser) {
       const userObj = JSON.parse(storedUser);
       const userId = userObj.id;
-      fetch(`${API_BASE_URL}/api/users/${userId}`)
+      authFetch(`${API_BASE_URL}/api/users/${userId}`)
         .then(res => res.json())
         .then(data => {
           if (data.profileImage) {
@@ -77,7 +79,7 @@ export default function Header({ userName }: { userName: string }) {
         const club = JSON.parse(storedClub);
         if (!club?._id) return;
   
-        const response = await fetch(`${API_BASE_URL}/api/inventory/low-stock?club=${club._id}`);
+        const response = await authFetch(`${API_BASE_URL}/api/inventory/low-stock?club=${club._id}`);
         if (!response.ok) throw new Error('Error fetching low stock products');
         const data = await response.json();
         const lowStockNotifications = data.map((item: any) => ({

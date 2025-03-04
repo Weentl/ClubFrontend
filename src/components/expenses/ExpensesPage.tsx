@@ -9,6 +9,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 import ExcelJS from 'exceljs';
+import { useAuthFetch } from '../utils/authFetch';
 
 // Definir API_BASE_URL localmente
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -32,6 +33,7 @@ function getLocalDateString(date: Date): string {
 }
 
 export default function ExpensesPage() {
+  const authFetch = useAuthFetch();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -56,7 +58,7 @@ export default function ExpensesPage() {
       const mainClub = JSON.parse(mainClubStr);
       const clubId = mainClub.id;
       
-      const response = await fetch(`${API_BASE_URL}/api/expenses?club=${clubId}`);
+      const response = await authFetch(`${API_BASE_URL}/api/expenses?club=${clubId}`);
       if (!response.ok) throw new Error('Error fetching expenses');
       const data = await response.json();
       setExpenses(data);
@@ -87,7 +89,7 @@ export default function ExpensesPage() {
 
   const handleDeleteExpense = async (expenseId: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/expenses/${expenseId}`, {
+      const response = await authFetch(`${API_BASE_URL}/api/expenses/${expenseId}`, {
         method: 'DELETE'
       });
       if (!response.ok) throw new Error('Error deleting expense');
