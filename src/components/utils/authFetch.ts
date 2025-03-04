@@ -1,4 +1,4 @@
-// hooks/useAuthFetch.ts
+// utils/useAuthFetch.ts
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import toast from 'react-hot-toast';
@@ -9,13 +9,24 @@ export function useAuthFetch() {
 
   async function authFetch(url: string, options: RequestInit = {}) {
     const token = localStorage.getItem('token');
-    options.headers = {
-      ...(options.headers || {}),
-      'Authorization': token ? `Bearer ${token}` : '',
-      'Content-Type': 'application/json',
-    };
+    
+    // Clonar headers existentes o crear nuevo objeto
+    const headers = new Headers(options.headers || {});
+    
+    // Solo agregar Content-Type si no es FormData
+    if (!(options.body instanceof FormData)) {
+      headers.set('Content-Type', 'application/json');
+    }
+    
+    // Agregar Authorization si existe el token
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
 
-    const response = await fetch(url, options);
+    const response = await fetch(url, {
+      ...options,
+      headers
+    });
 
     if (response.status === 401) {
       toast.error('La sesión ha expirado, introduce tus credenciales nuevamente.');

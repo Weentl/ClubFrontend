@@ -163,7 +163,7 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
       if (expense) {
         const id = expense.id || expense._id;
         if (!id) throw new Error('ID del gasto no definido');
-        const response = await fetch(`${API_BASE_URL}/api/expenses/${id}`, {
+        const response = await authFetch(`${API_BASE_URL}/api/expenses/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(expensePayload),
@@ -171,7 +171,7 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
         if (!response.ok) throw new Error('Error al actualizar el gasto');
         savedExpense = await response.json();
       } else {
-        const response = await fetch(`${API_BASE_URL}/api/expenses`, {
+        const response = await authFetch(`${API_BASE_URL}/api/expenses`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(expensePayload),

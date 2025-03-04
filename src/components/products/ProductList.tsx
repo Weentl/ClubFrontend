@@ -2,16 +2,22 @@
 import { useEffect, useState } from 'react';
 import { Package, Edit, Trash2 } from 'lucide-react';
 import { useAuthFetch } from '../utils/authFetch';
+import DeleteProductModal from './DeleteProductModal';
+import EditProductModal from './EditProductModal';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function ProductList() {
   const [products, setProducts] = useState<any[]>([]);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const authFetch = useAuthFetch();
 
   // Recupera el club principal desde el localStorage
-  const storedClub = localStorage.getItem("mainClub");
+  const storedClub = localStorage.getItem('mainClub');
   const mainClub = storedClub ? JSON.parse(storedClub) : null;
-  const authFetch = useAuthFetch();
+
   useEffect(() => {
     if (mainClub && mainClub.id) {
       loadProducts();
@@ -29,6 +35,27 @@ export default function ProductList() {
     } catch (error) {
       console.error('Error loading products:', error);
     }
+  };
+
+  // Abre el modal de eliminación
+  const handleDelete = (product: any) => {
+    setSelectedProduct(product);
+    setDeleteModalOpen(true);
+  };
+
+  // Abre el modal de edición
+  const handleEdit = (product: any) => {
+    setSelectedProduct(product);
+    setEditModalOpen(true);
+  };
+
+  // Callbacks para actualizar la lista tras eliminar o editar
+  const onDeleteSuccess = (deletedProductId: string) => {
+    setProducts(products.filter((p) => p.id !== deletedProductId));
+  };
+
+  const onEditSuccess = (updatedProduct: any) => {
+    setProducts(products.map((p) => (p.id === updatedProduct.id ? updatedProduct : p)));
   };
 
   return (
@@ -67,20 +94,20 @@ export default function ProductList() {
                       <p className="text-sm font-medium text-gray-900">
                         Precio de venta: ${product.sale_price}
                       </p>
-                      <p className="text-sm text-gray-500">
-                        Costo: ${product.purchase_price}
-                      </p>
+                      <p className="text-sm text-gray-500">Costo: ${product.purchase_price}</p>
                     </div>
                     <div className="flex space-x-2">
                       <button
                         type="button"
                         className="p-2 text-gray-400 hover:text-blue-600"
+                        onClick={() => handleEdit(product)}
                       >
                         <Edit className="h-5 w-5" />
                       </button>
                       <button
                         type="button"
                         className="p-2 text-gray-400 hover:text-red-600"
+                        onClick={() => handleDelete(product)}
                       >
                         <Trash2 className="h-5 w-5" />
                       </button>
@@ -92,6 +119,25 @@ export default function ProductList() {
           </li>
         ))}
       </ul>
+
+      {deleteModalOpen && selectedProduct && (
+        <DeleteProductModal
+          isOpen={deleteModalOpen}
+          setIsOpen={setDeleteModalOpen}
+          product={selectedProduct}
+          onDeleteSuccess={onDeleteSuccess}
+        />
+      )}
+
+      {editModalOpen && selectedProduct && (
+        <EditProductModal
+          isOpen={editModalOpen}
+          setIsOpen={setEditModalOpen}
+          product={selectedProduct}
+          onEditSuccess={onEditSuccess}
+        />
+      )}
     </div>
   );
 }
+
