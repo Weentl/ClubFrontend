@@ -1,5 +1,5 @@
 // ExpenseFormModal.tsx
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, Calendar, DollarSign, FileText, User, Upload } from 'lucide-react';
 import { Expense, ExpenseFormData } from '../types/expenses';
 import toast from 'react-hot-toast';
@@ -8,6 +8,13 @@ interface Props {
   expense?: Expense;
   onClose: () => void;
   onSave: (expense: Expense) => void;
+}
+
+interface Product {
+  _id: string;
+  name: string;
+  purchase_price: number;
+  sale_price: number;
 }
 
 const CATEGORIES = [
@@ -26,14 +33,16 @@ const SUPPLIERS = [
   'Transportes Rápidos',
 ];
 
-// Definir API_BASE_URL localmente
+// La URL base de la API se obtiene desde las variables de entorno o se usa el localhost
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
+  // Estado general del gasto
   const [formData, setFormData] = useState<ExpenseFormData>({
     amount: expense?.amount || 0,
-    category: expense?.category || 'inventory',
-    date: expense?.date || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString(),
+    // Se inicia la categoría (por defecto se usa "services" para gastos no inventario)
+    category: expense?.category || 'services',
+    date: expense?.date || new Date().toISOString().split('T')[0],
     description: expense?.description || '',
     supplier: expense?.supplier || '',
     is_recurring: expense?.is_recurring || false,
@@ -44,10 +53,22 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
   const [supplierSuggestions, setSupplierSuggestions] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Estados para campos específicos de inventario
+  const [productQuery, setProductQuery] = useState('');
+  const [productSuggestions, setProductSuggestions] = useState<Product[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [productPurchasePrice, setProductPurchasePrice] = useState<number>(0);
+  const [useAutoPrice, setUseAutoPrice] = useState<boolean>(true);
+  const [productQuantity, setProductQuantity] = useState<number>(0);
+
+  // Se obtiene el club activo del localStorage (necesario para filtrar productos y asociar gastos)
+  const mainClubStr = localStorage.getItem('mainClub');
+  const clubId = mainClubStr ? JSON.parse(mainClubStr).id : null;
+
+  // Manejo de subida de comprobante
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Simulación de subida de archivo (en un caso real se subiría al servidor)
       const reader = new FileReader();
       reader.onloadend = () => {
         setReceiptPreview(reader.result as string);
@@ -57,6 +78,7 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
     }
   };
 
+  // Autocomplete para proveedor
   const handleSupplierChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setFormData({ ...formData, supplier: value });
@@ -75,68 +97,132 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
     setSupplierSuggestions([]);
   };
 
+  // Buscar productos según el club y el query ingresado (se asume que existe este endpoint)
+  const fetchProductSuggestions = async (query: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/products?club=${clubId}&q=${query}`);
+      if (response.ok) {
+        const products = await response.json();
+        setProductSuggestions(products);
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (productQuery.length > 2) {
+      fetchProductSuggestions(productQuery);
+    } else {
+      setProductSuggestions([]);
+    }
+  }, [productQuery]);
+
+  const selectProduct = (product: Product) => {
+    setSelectedProduct(product);
+    setProductQuery(product.name);
+    setProductSuggestions([]);
+    setProductPurchasePrice(product.purchase_price);
+    setUseAutoPrice(true);
+  };
+
+  // Manejo del envío del formulario
   const handleSubmit = async (e: React.FormEvent, saveAndRepeat: boolean = false) => {
     e.preventDefault();
 
-    if (formData.amount <= 0) {
-      toast.error('El monto debe ser mayor a 0');
+    if (!clubId) {
+      toast.error('Club no encontrado en localStorage');
       return;
     }
 
-    try {
-      // Extraer el club activo desde el localStorage
-      const mainClubStr = localStorage.getItem('mainClub');
-      if (!mainClubStr) {
-        throw new Error('Club no encontrado en localStorage');
+    // Si es gasto de inventario se valida que se haya seleccionado un producto y una cantidad válida.
+    if (formData.category === 'inventory') {
+      if (!selectedProduct) {
+        toast.error('Debe seleccionar un producto');
+        return;
       }
-      const mainClub = JSON.parse(mainClubStr);
-      const clubId = mainClub.id;
+      if (productQuantity <= 0) {
+        toast.error('La cantidad debe ser mayor a 0');
+        return;
+      }
+      // Se calcula el monto y se autogenera la descripción
+      formData.amount = productPurchasePrice * productQuantity;
+      formData.description = `Compra de ${selectedProduct.name} - cantidad ${productQuantity}`;
+    } else {
+      if (formData.amount <= 0) {
+        toast.error('El monto debe ser mayor a 0');
+        return;
+      }
+    }
 
-      // Incluir el club en el payload
+    try {
+      // Crear o actualizar el gasto en la base de datos
       const expensePayload = { ...formData, club: clubId };
-
+      let savedExpense;
       if (expense) {
-        // Para actualizar, usamos expense.id o expense._id
         const id = expense.id || expense._id;
-        if (!id) {
-          throw new Error('ID del gasto no definido');
-        }
+        if (!id) throw new Error('ID del gasto no definido');
         const response = await fetch(`${API_BASE_URL}/api/expenses/${id}`, {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(expensePayload)
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(expensePayload),
         });
-        if (!response.ok) throw new Error('Error updating expense');
-        const updatedExpense = await response.json();
-        onSave(updatedExpense);
+        if (!response.ok) throw new Error('Error al actualizar el gasto');
+        savedExpense = await response.json();
       } else {
-        // Crear nuevo gasto
         const response = await fetch(`${API_BASE_URL}/api/expenses`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(expensePayload)
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(expensePayload),
         });
-        if (!response.ok) throw new Error('Error creating expense');
-        const newExpense = await response.json();
-        onSave(newExpense);
+        if (!response.ok) throw new Error('Error al crear el gasto');
+        savedExpense = await response.json();
+      }
 
-        if (saveAndRepeat) {
-          setFormData({
-            amount: 0,
-            category: formData.category,
-            date: new Date().toISOString().split('T')[0],
-            description: '',
-            supplier: formData.supplier,
-            is_recurring: formData.is_recurring,
-            receipt_url: '',
-          });
-          setReceiptPreview(null);
-          toast.success('Gasto guardado. Puede registrar otro similar.');
+      // Si el gasto es de inventario, se realiza el ajuste en el inventario
+      if (formData.category === 'inventory' && selectedProduct && productQuantity > 0) {
+        const adjustPayload = {
+          product_id: selectedProduct._id,
+          type: 'purchase',
+          quantity: productQuantity,
+          notes: formData.description,
+          purchase_price: productPurchasePrice,
+          // Se utiliza el precio de venta del producto; ajustar según necesidad
+          sale_price: selectedProduct.sale_price,
+          update_catalog_price: false,
+          club: clubId,
+        };
+        const adjustResponse = await fetch(`${API_BASE_URL}/api/inventory/adjust`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(adjustPayload),
+        });
+        if (!adjustResponse.ok) {
+          throw new Error('Error al ajustar el inventario');
         }
+      }
+
+      onSave(savedExpense);
+
+      if (!expense && saveAndRepeat) {
+        // Reiniciar el formulario; para inventario se limpian los datos específicos
+        setFormData({
+          amount: 0,
+          category: formData.category,
+          date: new Date().toISOString().split('T')[0],
+          description: '',
+          supplier: formData.supplier,
+          is_recurring: formData.is_recurring,
+          receipt_url: '',
+        });
+        setReceiptPreview(null);
+        setSelectedProduct(null);
+        setProductQuery('');
+        setProductSuggestions([]);
+        setProductQuantity(0);
+        setProductPurchasePrice(0);
+        setUseAutoPrice(true);
+        toast.success('Gasto guardado. Puede registrar otro similar.');
       }
     } catch (error) {
       console.error('Error saving expense:', error);
@@ -144,11 +230,9 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
     }
   };
 
-  const isInventoryExpense = formData.category === 'inventory';
-
   return (
     <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md sm:max-w-lg mx-4 sm:mx-auto">
         <div className="flex justify-between items-center p-4 border-b">
           <h3 className="text-lg font-medium">
             {expense ? 'Editar Gasto' : 'Registrar Nuevo Gasto'}
@@ -157,34 +241,8 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
             <X className="h-6 w-6" />
           </button>
         </div>
-
         <form onSubmit={(e) => handleSubmit(e)} className="p-4 space-y-4">
-          {/* Campo Monto */}
-          <div>
-            <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
-              Monto*
-            </label>
-            <div className="mt-1 relative rounded-md shadow-sm">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <DollarSign className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="number"
-                id="amount"
-                min="1"
-                step="0.01"
-                required
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="0.00"
-                value={formData.amount || ''}
-                onChange={(e) =>
-                  setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })
-                }
-              />
-            </div>
-          </div>
-
-          {/* Campo Categoría */}
+          {/* 1. Categoría */}
           <div>
             <label htmlFor="category" className="block text-sm font-medium text-gray-700">
               Categoría*
@@ -196,15 +254,162 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
             >
-              {CATEGORIES.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
+              {CATEGORIES.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Campo Fecha */}
+          {/* 2. Si es Inventario, se muestran los campos de producto */}
+          {formData.category === 'inventory' ? (
+            <div className="p-3 bg-blue-50 rounded-md">
+              <h4 className="text-sm font-medium text-blue-800 mb-2">Detalles de Inventario</h4>
+              {/* Buscador de producto */}
+              <div className="mb-4 relative">
+                <label htmlFor="product" className="block text-sm font-medium text-gray-700">
+                  Producto*
+                </label>
+                <input
+                  type="text"
+                  id="product"
+                  className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3 sm:text-sm"
+                  placeholder="Buscar producto..."
+                  value={productQuery}
+                  onChange={(e) => {
+                    setProductQuery(e.target.value);
+                    setSelectedProduct(null);
+                  }}
+                  required
+                />
+                {productSuggestions.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1 text-sm">
+                    {productSuggestions.map((product) => (
+                      <div
+                        key={product._id}
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => selectProduct(product)}
+                      >
+                        {product.name}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {/* Precio del producto con checkbox para usar precio automático */}
+              {selectedProduct && (
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="purchasePrice" className="block text-sm font-medium text-gray-700">
+                      Precio del Producto*
+                    </label>
+                    <div className="flex items-center">
+                      <input
+                        type="number"
+                        id="purchasePrice"
+                        min="0"
+                        step="0.01"
+                        className={`mt-1 block w-full border border-gray-300 rounded-md py-2 px-3 sm:text-sm ${
+                          useAutoPrice ? 'bg-gray-100 cursor-not-allowed' : ''
+                        }`}
+                        placeholder="Precio de compra"
+                        value={productPurchasePrice || ''}
+                        onChange={(e) =>
+                          setProductPurchasePrice(parseFloat(e.target.value) || 0)
+                        }
+                        disabled={useAutoPrice}
+                        required
+                      />
+                      <div className="ml-2 flex items-center">
+                        <input
+                          type="checkbox"
+                          id="autoPrice"
+                          checked={useAutoPrice}
+                          onChange={(e) => {
+                            setUseAutoPrice(e.target.checked);
+                            if (e.target.checked && selectedProduct) {
+                              setProductPurchasePrice(selectedProduct.purchase_price);
+                            }
+                          }}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <label htmlFor="autoPrice" className="ml-1 text-sm text-gray-700">
+                          Automático
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Cantidad de producto */}
+                  <div>
+                    <label htmlFor="quantity" className="block text-sm font-medium text-gray-700">
+                      Cantidad*
+                    </label>
+                    <input
+                      type="number"
+                      id="quantity"
+                      min="1"
+                      className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3 sm:text-sm"
+                      placeholder="Cantidad"
+                      value={productQuantity || ''}
+                      onChange={(e) => setProductQuantity(parseInt(e.target.value) || 0)}
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            // Si no es inventario, se muestra el campo de descripción
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                Descripción*
+              </label>
+              <div className="mt-1 relative rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FileText className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  id="description"
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  placeholder="Ej: Pago de internet para el local"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+          )}
+
+          {/* 3. Campo Monto (solo para gastos que no sean de inventario; en inventario se calcula automáticamente) */}
+          {formData.category !== 'inventory' && (
+            <div>
+              <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
+                Monto*
+              </label>
+              <div className="mt-1 relative rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <DollarSign className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="number"
+                  id="amount"
+                  min="1"
+                  step="0.01"
+                  required
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  placeholder="0.00"
+                  value={formData.amount || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })
+                  }
+                />
+              </div>
+            </div>
+          )}
+
+          {/* 4. Fecha */}
           <div>
             <label htmlFor="date" className="block text-sm font-medium text-gray-700">
               Fecha*
@@ -224,27 +429,7 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
             </div>
           </div>
 
-          {/* Campo Descripción */}
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-              Descripción
-            </label>
-            <div className="mt-1 relative rounded-md shadow-sm">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FileText className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                id="description"
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="Ej: Pago de internet para el local"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
-            </div>
-          </div>
-
-          {/* Campo Proveedor con Autocomplete */}
+          {/* 5. Proveedor */}
           <div>
             <label htmlFor="supplier" className="block text-sm font-medium text-gray-700">
               Proveedor
@@ -280,28 +465,13 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
             </p>
           </div>
 
-          {/* Campos para gasto de Inventario */}
-          {isInventoryExpense && (
-            <div className="p-3 bg-blue-50 rounded-md">
-              <h4 className="text-sm font-medium text-blue-800 mb-2">
-                Detalles de Inventario
-              </h4>
-              <p className="text-xs text-blue-600 mb-2">
-                Este gasto se registrará como una compra de inventario.
-              </p>
-              <p className="text-xs text-blue-600">
-                Recuerda actualizar tu inventario después de registrar este gasto.
-              </p>
-            </div>
-          )}
-
-          {/* Subida de Comprobante */}
+          {/* 6. Subida de Comprobante */}
           <div>
             <label className="block text-sm font-medium text-gray-700">
               Comprobante (opcional)
             </label>
             <div
-              className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-gray-400"
+              className="mt-1 flex flex-col items-center justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-gray-400"
               onClick={() => fileInputRef.current?.click()}
             >
               <div className="space-y-1 text-center">
@@ -337,7 +507,7 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
             </div>
           </div>
 
-          {/* Checkbox para gasto recurrente */}
+          {/* 7. Gasto recurrente */}
           <div className="flex items-center">
             <input
               id="is_recurring"
@@ -352,7 +522,8 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
             </label>
           </div>
 
-          <div className="flex justify-end space-x-3 pt-4">
+          {/* Botones de acción */}
+          <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-4">
             <button
               type="button"
               onClick={onClose}
@@ -381,4 +552,8 @@ export default function ExpenseFormModal({ expense, onClose, onSave }: Props) {
     </div>
   );
 }
+
+
+
+
 
