@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Package, DollarSign, Store } from 'lucide-react';
 import ClubSelector from './ClubSelector';
 import SalesExpenseChart from './SalesExpenseChart';
+import { useAuthFetch } from '../../utils/authFetch';
 
 interface ExecutiveSummaryData {
   netProfit: number;
@@ -42,18 +43,14 @@ export default function ExecutiveSummaryReport({ period }: ExecutiveSummaryRepor
   const [data, setData] = useState<ExecutiveSummaryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [clubId, setClubId] = useState<string | null>('global');
-
+  const authFetch = useAuthFetch();
   useEffect(() => {
     setLoading(true);
     let url = `${API_BASE_URL}/api/reports?type=executive-summary&period=${period}`;
     if (clubId) {
       url += `&club=${clubId}`;
     }
-    fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    })
+    authFetch(url)
       .then(res => res.json())
       .then((data) => {
         setData(data);

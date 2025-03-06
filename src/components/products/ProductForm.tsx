@@ -63,6 +63,7 @@ export default function ProductForm() {
       // Agrega el id del club (del mainClub obtenido desde localStorage)
       if (mainClub && mainClub.id) {
         formDataToSend.append('club', mainClub.id);
+        console.log('Club:', mainClub.id);
       } else {
         toast.error('No se encontró el club activo');
         return;

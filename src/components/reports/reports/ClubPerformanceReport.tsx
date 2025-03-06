@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Filter, Store } from 'lucide-react';
 import ClubSelector from './ClubSelector';
+import { useAuthFetch } from '../../utils/authFetch';
 
 interface ClubData {
   id: string;
@@ -33,6 +34,7 @@ export default function ClubPerformanceReport({ period }: ClubPerformanceReportP
   const [searchTerm, setSearchTerm] = useState('');
   const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('all');
   const [selectedClub, setSelectedClub] = useState<string | null>('global');
+  const authFetch = useAuthFetch();
 
   useEffect(() => {
     setLoading(true);
@@ -40,11 +42,7 @@ export default function ClubPerformanceReport({ period }: ClubPerformanceReportP
     if (selectedClub) {
       url += `&club=${selectedClub}`;
     }
-    fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    })
+    authFetch(url)
       .then((res) => res.json())
       .then((fetchedData: ClubPerformanceReportData) => {
         setData(fetchedData);

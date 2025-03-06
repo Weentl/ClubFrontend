@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import ClubSelector from './ClubSelector';
 import NetProfitChart from './NetProfitChart';
+import { useAuthFetch } from '../../utils/authFetch';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -35,7 +36,7 @@ export default function NetProfitReport({ period }: NetProfitReportProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [clubId, setClubId] = useState<string | null>("global");
-
+  const authFetch = useAuthFetch();
   // Función para formatear el período en un formato más legible
   const formatPeriodRange = (periodStr: string, periodType: string) => {
     // Si ya tenemos fechas específicas en los datos, las usamos directamente
@@ -100,11 +101,7 @@ export default function NetProfitReport({ period }: NetProfitReportProps) {
       url += `&club=${clubId}`;
     }
     
-    fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    })
+    authFetch(url)
       .then(async (res) => {
         if (!res.ok) {
           // Capturar errores HTTP

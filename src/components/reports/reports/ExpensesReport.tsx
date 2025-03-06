@@ -3,6 +3,7 @@ import moment from 'moment-timezone';
 import { Search, Filter, AlertTriangle } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 import ClubSelector from './ClubSelector';
+import { useAuthFetch } from '../../utils/authFetch';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -38,7 +39,7 @@ export default function ExpensesReport({ period }: ExpensesReportProps) {
   const [data, setData] = useState<ExpensesReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedClub, setSelectedClub] = useState<string | null>('global');
-
+  const authFetch = useAuthFetch();
   // Calcular el período dinámicamente usando moment‑timezone en "America/Mexico_City"
   const tz = "America/Mexico_City";
   const now = moment.tz(tz);
@@ -63,11 +64,7 @@ export default function ExpensesReport({ period }: ExpensesReportProps) {
     if (selectedClub) {
       url += `&club=${selectedClub}`;
     }
-    fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    })
+    authFetch(url)
       .then(res => res.json())
       .then((fetchedData: ExpensesReportData) => {
         setData(fetchedData);

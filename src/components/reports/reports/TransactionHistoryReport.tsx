@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
 import ClubSelector from './ClubSelector';
+import { useAuthFetch } from '../../utils/authFetch';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -34,18 +35,14 @@ export default function TransactionHistoryReport({ period }: TransactionHistoryR
   const [filterType, setFilterType] = useState<'all' | 'sale' | 'expense' | 'adjustment'>('all');
   const [filterAmount, setFilterAmount] = useState<'all' | 'small' | 'medium' | 'large'>('all');
   const [selectedClub, setSelectedClub] = useState<string | null>('global');
-
+  const authFetch = useAuthFetch();
   useEffect(() => {
     setLoading(true);
     let url = `${API_BASE_URL}/api/reports?type=transaction-history&period=${period}`;
     if (selectedClub) {
       url += `&club=${selectedClub}`;
     }
-    fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    })
+    authFetch(url)
       .then((res) => res.json())
       .then((fetchedData: TransactionHistoryReportData) => {
         setData(fetchedData);

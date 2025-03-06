@@ -3,6 +3,7 @@ import moment from 'moment-timezone';
 import 'moment/locale/es'; // Configuramos moment en español
 import { ChevronLeft, ChevronRight, DollarSign, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import ClubSelector from './ClubSelector';
+import { useAuthFetch } from '../../utils/authFetch';
 
 interface CashFlowDay {
   date: string;
@@ -28,7 +29,7 @@ export default function CashFlowReport({ period }: CashFlowReportProps) {
   // Configuramos el locale en español y la zona horaria de México
   moment.locale('es');
   const mexicoTz = "America/Mexico_City";
-
+  const authFetch = useAuthFetch();
   // Estado para la fecha actual (usado para la navegación en el tiempo)
   const [currentDate, setCurrentDate] = useState(() => moment.tz(mexicoTz));
   const [data, setData] = useState<CashFlowReportData | null>(null);
@@ -89,11 +90,7 @@ export default function CashFlowReport({ period }: CashFlowReportProps) {
     setLoading(true);
     const clubParam = clubId ? `&club=${clubId}` : '';
     const dateParam = `&date=${currentDate.toISOString()}`;
-    fetch(`${API_BASE_URL}/api/reports?type=cash-flow&period=${period}${clubParam}${dateParam}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    })
+    authFetch(`${API_BASE_URL}/api/reports?type=cash-flow&period=${period}${clubParam}${dateParam}`)
       .then((res) => res.json())
       .then((fetchedData: CashFlowReportData) => {
         setData(fetchedData);

@@ -4,6 +4,7 @@ import 'moment/locale/es'; // Configuramos moment en español
 import { Search, Filter, DollarSign, Package, Coffee } from 'lucide-react';
 import ClubSelector from './ClubSelector';
 import ProductMarginChart from './ProductMarginChart';
+import { useAuthFetch } from '../../utils/authFetch';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -38,7 +39,7 @@ export default function ProductMarginReport({ period }: ProductMarginReportProps
   const [filterType, setFilterType] = useState('all');
   const [sortBy, setSortBy] = useState<'margin' | 'sales' | 'profit'>('margin');
   const [clubId, setClubId] = useState<string | null>('global');
-
+  const authFetch = useAuthFetch();
   // Estado para la fecha actual y cálculo de rango según período
   const mexicoTz = "America/Mexico_City";
   const [currentDate, setCurrentDate] = useState(() => moment.tz(mexicoTz));
@@ -70,11 +71,7 @@ export default function ProductMarginReport({ period }: ProductMarginReportProps
   useEffect(() => {
     setLoading(true);
     const clubParam = clubId ? `&club=${clubId}` : '';
-    fetch(`${API_BASE_URL}/api/reports?type=product-margin&period=${period}${clubParam}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    })
+    authFetch(`${API_BASE_URL}/api/reports?type=product-margin&period=${period}${clubParam}`)
       .then(res => res.json())
       .then((fetchedData: ProductMarginReportData) => {
         setData(fetchedData);

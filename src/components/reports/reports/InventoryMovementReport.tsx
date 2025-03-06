@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import moment from 'moment';
 import { Search, Filter, Package, ArrowUp, ArrowDown, AlertTriangle } from 'lucide-react';
 import ClubSelector from './ClubSelector';
+import { useAuthFetch } from '../../utils/authFetch';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -46,7 +47,7 @@ export default function InventoryMovementReport({ period }: InventoryMovementRep
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterAlert, setFilterAlert] = useState(false);
   const [club, setClub] = useState<string | null>('global');
-
+  const authFetch = useAuthFetch();
   // Calcular el rango de fechas según el período:
   // Para semanal se usa isoWeek (lunes a domingo)
   const now = moment();
@@ -69,11 +70,7 @@ export default function InventoryMovementReport({ period }: InventoryMovementRep
     if (club) {
       url += `&club=${club}`;
     }
-    fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    })
+    authFetch(url)
       .then((res) => res.json())
       .then((fetchedData: InventoryMovementReportData) => {
         setData(fetchedData);
