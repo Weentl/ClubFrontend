@@ -35,7 +35,7 @@ export default function NewSaleModal({ onClose, onSave }: Props) {
     try {
       // Enviar el id del club como query parameter para filtrar productos
       const clubQuery = mainClub && mainClub.id ? `?club=${mainClub.id}` : '';
-      const response = await axiosInstance.get(`${API_BASE_URL}/api/products${clubQuery}`);
+      const response = await axiosInstance.get(`${API_BASE_URL}/api/products/${clubQuery}`);
       const data = response.data;
       // Mapear _id a id si es necesario
       const mappedProducts = data.map((prod: any) => ({
