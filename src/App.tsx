@@ -21,6 +21,7 @@ import ClubsPage from './components/clubs/ClubsPage';
 import ReportsPage from './components/reports/ReportsPage';
 import ExpensesPage from './components/expenses/ExpensesPage';
 import SettingsPage from './components/settings/SettingsPage';
+import EmployeeManagement from './components/employees/EmployeeManagement';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -65,6 +66,7 @@ function App() {
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/expenses" element={<ExpensesPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/employees" element={<EmployeeManagement />} />
           </Route>
           <Route path="/onboarding" element={
             <PrivateRoute>

@@ -11,7 +11,8 @@ import {
   PieChart,
   DollarSign,
   Menu,
-  X
+  X,
+  UserPlus
 } from 'lucide-react';
 import { useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
@@ -23,6 +24,7 @@ const menuItems = [
   { icon: Package, label: 'Productos', href: '/products' },
   { icon: Boxes, label: 'Inventario', href: '/inventory' },
   { icon: Users, label: 'Clientes', href: '/customers' },
+  { icon: UserPlus, label: 'Empleados', href: '/employees' },
   { icon: Store, label: 'Clubs', href: '/clubs' },
   { icon: PieChart, label: 'Reportes', href: '/reports' },
   { icon: Settings, label: 'Configuración', href: '/settings' },
