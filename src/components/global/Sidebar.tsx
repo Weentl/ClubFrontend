@@ -9,14 +9,8 @@ import {
   LogOut,
   Boxes,
   PieChart,
-<<<<<<< HEAD
   DollarSign,
-  Menu,
-  X,
   UserPlus
-=======
-  DollarSign
->>>>>>> origin/main
 } from 'lucide-react';
 import { useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
