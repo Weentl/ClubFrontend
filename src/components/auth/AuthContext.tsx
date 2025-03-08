@@ -3,13 +3,14 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
 interface User {
-  profileImage: User | null;
+  profileImage: string | null;
   id: string;
   fullName: string;
   email: string;
-  businessType: string;
-  isFirstLogin: boolean; // Add isFirstLogin to the User interface
-  
+  businessType?: string;
+  isFirstLogin: boolean;
+  role?: string;
+  userType: 'owner' | 'employee';
 }
 
 interface MainClub {
@@ -20,8 +21,9 @@ interface MainClub {
 
 interface AuthContextType {
   user: User | null;
-  mainClub: MainClub | null; // Nuevo campo
+  mainClub: MainClub | null;
   loading: boolean;
+  needsPasswordChange: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (data: {
     fullName: string;
@@ -32,30 +34,32 @@ interface AuthContextType {
   }) => Promise<void>;
   signOut: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<any>;
-  resetPassword: (
-    email: string,
-    code: string,
-    newPassword: string
-  ) => Promise<any>;
+  resetPassword: (email: string, code: string, newPassword: string) => Promise<any>;
   updateAuthUser: (userData: Partial<User>) => void;
 }
 
-// Usamos import.meta.env para obtener la URL base en Vite
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [mainClub, setMainClub] = useState<MainClub | null>(null); // Nuevo estado
+  const [mainClub, setMainClub] = useState<MainClub | null>(null);
   const [loading, setLoading] = useState(true);
+  const [needsPasswordChange, setNeedsPasswordChange] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
-    const mainClubStr = localStorage.getItem('mainClub'); // Obtener del localStorage
+    const mainClubStr = localStorage.getItem('mainClub');
     if (token && userStr) {
-      setUser(JSON.parse(userStr));
+      const parsedUser = JSON.parse(userStr);
+      setUser(parsedUser);
+      // Si el usuario es empleado y es su primer inicio, establecemos el flag
+      console.log(parsedUser);
+      if (parsedUser.userType === 'employee' && parsedUser.isFirstLogin) {
+        setNeedsPasswordChange(true);
+      }
     }
     if (mainClubStr) {
       setMainClub(JSON.parse(mainClubStr));
@@ -75,15 +79,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(errorData.message || 'Error al iniciar sesión.');
       }
       const data = await res.json();
+      // Guardamos token y usuario en localStorage
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-
       if (data.mainClub) {
         localStorage.setItem('mainClub', JSON.stringify(data.mainClub));
         setMainClub(data.mainClub);
       }
-
       setUser(data.user);
+      // Si es empleado y es su primer inicio, establecemos el flag
+      if (data.user.userType === 'employee' && data.user.isFirstLogin) {
+        setNeedsPasswordChange(true);
+        toast.success('Es tu primer inicio de sesión, debes cambiar tu contraseña.');
+      } else {
+        setNeedsPasswordChange(false);
+      }
     } catch (error: any) {
       toast.error(error.message);
       throw error;
@@ -129,9 +139,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    localStorage.removeItem('mainClub'); // Eliminar club principal
+    localStorage.removeItem('mainClub');
     setUser(null);
     setMainClub(null);
+    setNeedsPasswordChange(false);
   };
 
   const requestPasswordReset = async (email: string) => {
@@ -154,11 +165,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const resetPassword = async (
-    email: string,
-    code: string,
-    newPassword: string
-  ) => {
+  const resetPassword = async (email: string, code: string, newPassword: string) => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
         method: 'POST',
@@ -177,23 +184,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw error;
     }
   };
+
   const updateAuthUser = (userData: Partial<User>) => {
-    setUser(currentUser => {
+    setUser((currentUser) => {
       const updatedUser = { ...currentUser, ...userData } as User;
       localStorage.setItem('user', JSON.stringify(updatedUser));
       return updatedUser;
     });
   };
+
   const value = {
     user,
-    mainClub, // Agregar al contexto
+    mainClub,
     loading,
+    needsPasswordChange,
     signIn,
     signUp,
     signOut,
     requestPasswordReset,
     resetPassword,
-    updateAuthUser, // Include updateAuthUser in the value
+    updateAuthUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

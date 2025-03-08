@@ -22,6 +22,8 @@ import ReportsPage from './components/reports/ReportsPage';
 import ExpensesPage from './components/expenses/ExpensesPage';
 import SettingsPage from './components/settings/SettingsPage';
 import EmployeeManagement from './components/employees/EmployeeManagement';
+import EmployeeChangePassword from './components/EmployeeSection/EmployeeChangePassword';
+import EmployeeDashboard from './components/EmployeeSection/EmployeeDashboard';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -74,6 +76,16 @@ function App() {
             </PrivateRoute>
           } 
           />
+          <Route path="/employee/change-password" element={
+            <PrivateRoute>
+              <EmployeeChangePassword />
+            </PrivateRoute>
+          } />
+          <Route path="/employee/dashboard" element={
+            <PrivateRoute>
+              <EmployeeDashboard />
+            </PrivateRoute>
+          } />
           
         </Routes>
         <Toaster position="top-right" />

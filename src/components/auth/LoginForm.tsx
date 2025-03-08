@@ -1,24 +1,49 @@
 // src/components/auth/LoginForm.tsx
 import React, { useState } from 'react';
 import { Mail, Lock, ArrowRight } from 'lucide-react';
-import { useAuth } from './AuthContext';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { useAuth } from './AuthContext';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     try {
       await signIn(email, password);
+      // Obtenemos el usuario del contexto (ya está almacenado en AuthContext)
+      const userStr = localStorage.getItem('user');
+      if (!userStr) {
+        throw new Error('No se encontró información del usuario.');
+      }
+      const user = JSON.parse(userStr);
       toast.success('Inicio de sesión exitoso');
-      navigate('/dashboard');
-    } catch (error) {
-      // El error se maneja en AuthContext
+
+      // Redirección según el tipo de usuario y en el caso de empleados, si es su primer login
+      if (user.userType === 'employee') {
+        if (user.isFirstLogin) {
+          // Redirige al formulario exclusivo de cambio de contraseña para empleados
+          navigate('/employee/change-password');
+        } else {
+          // Redirige al dashboard exclusivo de empleados
+          navigate('/employee/dashboard');
+        }
+      } else {
+        // Para dueños, redirige a su dashboard
+        navigate('/dashboard');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Error en el login');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -29,7 +54,6 @@ export default function LoginForm() {
           Bienvenido de nuevo
         </h2>
       </div>
-
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit}>
@@ -83,9 +107,10 @@ export default function LoginForm() {
             <div>
               <button
                 type="submit"
+                disabled={loading}
                 className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#2A5C9A] hover:bg-[#1e4474] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                Iniciar Sesión
+                {loading ? 'Iniciando...' : 'Iniciar Sesión'}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </button>
             </div>
