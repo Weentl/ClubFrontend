@@ -2,18 +2,21 @@ import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useAuthFetch } from '../utils/authFetch';
 import { useAuth } from '../auth/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface Props {
   employeeId?: string;
-  onPasswordChanged: () => void;
+  onPasswordChanged?: () => void; // Se marca como opcional
 }
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 export default function EmployeeChangePassword({ employeeId, onPasswordChanged }: Props) {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const authFetch = useAuthFetch();
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   // Si no se pasa employeeId, se usa el id del usuario autenticado
   const effectiveEmployeeId = employeeId || user?.id;
@@ -31,7 +34,6 @@ export default function EmployeeChangePassword({ employeeId, onPasswordChanged }
     }
     setLoading(true);
     try {
-      // Llamada al endpoint para actualizar la contraseña y marcar que ya no es el primer login
       const response = await authFetch(`${API_BASE_URL}/api/employees/${effectiveEmployeeId}/change-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -40,8 +42,14 @@ export default function EmployeeChangePassword({ employeeId, onPasswordChanged }
       if (!response.ok) {
         throw new Error('Error al cambiar la contraseña');
       }
-      toast.success('Contraseña cambiada correctamente');
-      onPasswordChanged();
+      toast.success('Contraseña cambiada correctamente. Vuelve a ingresar tus credenciales para iniciar sesión.');
+      
+      // Se verifica si onPasswordChanged es una función antes de llamarla
+      if (typeof onPasswordChanged === 'function') {
+        onPasswordChanged();
+      }
+      
+      navigate('/login');
     } catch (error: any) {
       toast.error(error.message || 'Error al cambiar la contraseña');
     } finally {
