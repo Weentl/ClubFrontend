@@ -56,7 +56,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const parsedUser = JSON.parse(userStr);
       setUser(parsedUser);
       // Si el usuario es empleado y es su primer inicio, establecemos el flag
-      console.log(parsedUser);
       if (parsedUser.userType === 'employee' && parsedUser.isFirstLogin) {
         setNeedsPasswordChange(true);
       }

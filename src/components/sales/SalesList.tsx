@@ -1,4 +1,4 @@
-//SalesList.tsx
+// SalesList.tsx
 import { Package, Coffee, User } from 'lucide-react';
 import type { Sale } from '../types/sales';
 import type { Product } from '../types/products';
@@ -12,14 +12,8 @@ interface Props {
 }
 
 function formatLocalDate(dateStr: string): string {
-  console.log('dateStr', dateStr);
-
-  // **Eliminar la 'Z' al final si existe para tratar la cadena como hora local**
   const dateStrLocalTime = dateStr.endsWith('Z') ? dateStr.slice(0, -1) : dateStr;
-
   const date = new Date(dateStrLocalTime);
-  console.log('date', date);
-
   const options: Intl.DateTimeFormatOptions = {
     year: 'numeric',
     month: 'long',
@@ -29,7 +23,6 @@ function formatLocalDate(dateStr: string): string {
     second: 'numeric',
     hour12: true,
   };
-
   return date.toLocaleString(undefined, options);
 }
 
@@ -77,6 +70,12 @@ export default function SalesList({ sales, loading, products, clients }: Props) 
                 <p className="text-sm text-gray-500">
                   {formatLocalDate(sale.created_at)}
                 </p>
+                {/* Mostrar el nombre de quien creó la venta */}
+                {sale.created_by_name && (
+                  <p className="text-xs text-gray-500">
+                    Venta realizada por: {sale.created_by_name}
+                  </p>
+                )}
               </div>
               <div className="text-sm font-medium text-gray-900">
                 ${sale.total.toFixed(2)}
@@ -123,4 +122,5 @@ export default function SalesList({ sales, loading, products, clients }: Props) 
     </ul>
   );
 }
+
 

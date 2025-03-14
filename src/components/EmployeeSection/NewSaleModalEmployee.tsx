@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Search, Package, Coffee, DollarSign, User } from 'lucide-react';
 import type { Product } from '../types/products';
 import type { SaleItem } from '../types/sales';
-import ClientSelector from '../clients/ClientSelector';
+import ClientSelector from './ClientSelector';
 import { Client } from '../types/clients';
 import toast from 'react-hot-toast';
 import axiosInstance from '../utils/axiosInstance';
@@ -26,8 +26,6 @@ export default function NewSaleModal({ onClose, onSave }: Props) {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [, setLoading] = useState(true);
   
-  console.log('mainClub:', mainClub);
-  console.log('Club', mainClub.id);
 
   useEffect(() => {
     loadProducts();
@@ -36,8 +34,7 @@ export default function NewSaleModal({ onClose, onSave }: Props) {
   const loadProducts = async () => {
     try {
       // Enviar el id del club como query parameter para filtrar productos
-      const clubQuery = mainClub && mainClub.id ? `?club=${mainClub.id}` : '';
-      console.log('ClubQuery:', clubQuery);
+      const clubQuery = mainClub ? `?club=${mainClub}` : '';
       const response = await axiosInstance.get(`${API_BASE_URL}/api/products/${clubQuery}`);
       const data = response.data;
       // Mapear _id a id si es necesario
@@ -133,7 +130,7 @@ export default function NewSaleModal({ onClose, onSave }: Props) {
   };
 
   const handleSubmit = async () => {
-    if (!mainClub || !mainClub.id) {
+    if (!mainClub) {
       toast.error('No se encontró el club activo.');
       return;
     }
@@ -142,7 +139,7 @@ export default function NewSaleModal({ onClose, onSave }: Props) {
         items: selectedItems,
         total,
         status: 'completed',
-        club: mainClub.id, // Asociar la venta al club activo
+        club: mainClub, // Asociar la venta al club activo
         client_id: selectedClient ? (selectedClient.id || selectedClient._id) : null,
         clientTime: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString(),
         clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,

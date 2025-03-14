@@ -9,6 +9,8 @@ export interface SaleItem {
   }
   
   export interface Sale {
+    created_by_name: any;
+    created_by: any;
     _id: string;
     id: string;
     items: SaleItem[];

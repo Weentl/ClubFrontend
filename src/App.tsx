@@ -1,3 +1,5 @@
+// En App.tsx o en un archivo de rutas similar
+
 import React from 'react';
 import {
   BrowserRouter as Router,
@@ -25,68 +27,98 @@ import EmployeeManagement from './components/employees/EmployeeManagement';
 import EmployeeChangePassword from './components/EmployeeSection/EmployeeChangePassword';
 import EmployeeDashboard from './components/EmployeeSection/EmployeeDashboard';
 
+// Componente PrivateRoute genérico
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (!user) {
-    return <Navigate to="/login" />;
-  }
-
+  if (loading) return <div>Loading...</div>;
+  if (!user) return <Navigate to="/login" />;
   return <>{children}</>;
 }
+
+// Ruta para dueños: solo se permite acceso si el usuario no es empleado
+function OwnerRoute({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  if (user?.userType === 'employee') {
+    return <Navigate to="/employee/dashboard" />;
+  }
+  return <>{children}</>;
+}
+
+// Ruta para empleados: solo se permite acceso si el usuario es empleado
+function EmployeeRoute({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  if (user?.userType === 'owner') {
+    return <Navigate to="/dashboard" />;
+  }
+  return <>{children}</>;
+}
+
+// Layout para empleados (puedes personalizarlo)
+const EmployeeLayout = ({ children }: { children: React.ReactNode }) => {
+  return <div>{children}</div>;
+};
 
 function App() {
   return (
     <AuthProvider>
       <Router>
         <Routes>
-          {/* Public routes */}
+          {/* Rutas públicas */}
           <Route path="/login" element={<LoginForm />} />
           <Route path="/register" element={<RegisterForm />} />
           <Route path="/reset-password" element={<PasswordReset />} />
-          
-          {/* Protected routes with sidebar layout */}
+
+          {/* Rutas para dueños (owner) usando MainLayout */}
           <Route
             path="/"
             element={
               <PrivateRoute>
-                <MainLayout />
+                <OwnerRoute>
+                  <MainLayout />
+                </OwnerRoute>
               </PrivateRoute>
             }
           >
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/products" element={<ProductsPage />} />
-            <Route path="/inventory" element={<InventoryList />} />
-            <Route path="/sales" element={<SalesPage />} />
-            <Route path="/customers" element={<ClientsList />} />
-            <Route path="/clubs" element={<ClubsPage/>} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="products" element={<ProductsPage />} />
+            <Route path="inventory" element={<InventoryList />} />
+            <Route path="sales" element={<SalesPage />} />
+            <Route path="customers" element={<ClientsList />} />
+            <Route path="clubs" element={<ClubsPage />} />
             <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="/reports" element={<ReportsPage />} />
-            <Route path="/expenses" element={<ExpensesPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/employees" element={<EmployeeManagement />} />
+            <Route path="reports" element={<ReportsPage />} />
+            <Route path="expenses" element={<ExpensesPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+            <Route path="employees" element={<EmployeeManagement />} />
           </Route>
-          <Route path="/onboarding" element={
-            <PrivateRoute>
-              <OnboardingFlow />
-            </PrivateRoute>
-          } 
+
+          {/* Rutas para empleados */}
+          <Route
+            path="/employee/*"
+            element={
+              <PrivateRoute>
+                <EmployeeRoute>
+                  <EmployeeLayout>
+                    <Routes>
+                      <Route path="dashboard" element={<EmployeeDashboard />} />
+                      <Route path="change-password" element={<EmployeeChangePassword />} />
+                      <Route path="*" element={<Navigate to="dashboard" replace />} />
+                    </Routes>
+                  </EmployeeLayout>
+                </EmployeeRoute>
+              </PrivateRoute>
+            }
           />
-          <Route path="/employee/change-password" element={
-            <PrivateRoute>
-              <EmployeeChangePassword />
-            </PrivateRoute>
-          } />
-          <Route path="/employee/dashboard" element={
-            <PrivateRoute>
-              <EmployeeDashboard />
-            </PrivateRoute>
-          } />
-          
+
+          {/* Rutas de onboarding */}
+          <Route
+            path="/onboarding"
+            element={
+              <PrivateRoute>
+                <OnboardingFlow />
+              </PrivateRoute>
+            }
+          />
         </Routes>
         <Toaster position="top-right" />
       </Router>
@@ -95,3 +127,4 @@ function App() {
 }
 
 export default App;
+
