@@ -1,11 +1,24 @@
 import { useState, useEffect } from 'react';
-import { X, Search, Package, Coffee, DollarSign, User } from 'lucide-react';
+import { X, Search, Package, Coffee, DollarSign, User, Trash2 } from 'lucide-react';
 import type { Product } from '../types/products';
 import type { SaleItem } from '../types/sales';
 import ClientSelector from '../clients/ClientSelector';
 import { Client } from '../types/clients';
 import toast from 'react-hot-toast';
 import axiosInstance from '../utils/axiosInstance';
+
+// Definimos el tipo Extra
+interface Extra {
+  id: string;
+  description: string;
+  quantity: number;
+  cost: number;
+}
+
+// Extendemos SaleItem para incluir un arreglo de extras
+interface ModifiedSaleItem extends Omit<SaleItem, 'extras'> {
+  extras?: Extra[];
+}
 
 interface Props {
   onClose: () => void;
@@ -22,12 +35,15 @@ export default function NewSaleModal({ onClose, onSave }: Props) {
   const [step, setStep] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
-  const [selectedItems, setSelectedItems] = useState<SaleItem[]>([]);
+  const [selectedItems, setSelectedItems] = useState<ModifiedSaleItem[]>([]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [, setLoading] = useState(true);
-  
-  console.log('mainClub:', mainClub);
-  console.log('Club', mainClub.id);
+
+  // Estados para controlar el formulario de extras por item
+  const [extraFormVisibility, setExtraFormVisibility] = useState<{ [itemId: string]: boolean }>({});
+  const [extraFormFields, setExtraFormFields] = useState<{
+    [itemId: string]: { description: string; quantity: number; cost: number | '' };
+  }>({});
 
   useEffect(() => {
     loadProducts();
@@ -35,12 +51,9 @@ export default function NewSaleModal({ onClose, onSave }: Props) {
 
   const loadProducts = async () => {
     try {
-      // Enviar el id del club como query parameter para filtrar productos
       const clubQuery = mainClub && mainClub.id ? `?club=${mainClub.id}` : '';
-      console.log('ClubQuery:', clubQuery);
       const response = await axiosInstance.get(`${API_BASE_URL}/api/products/${clubQuery}`);
       const data = response.data;
-      // Mapear _id a id si es necesario
       const mappedProducts = data.map((prod: any) => ({
         ...prod,
         id: prod._id || prod.id,
@@ -53,18 +66,14 @@ export default function NewSaleModal({ onClose, onSave }: Props) {
     }
   };
 
-  // Mostrar solo los productos que coinciden con la búsqueda
+  // Filtrado y sugerencias de productos
   const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  // Limitar a 4 productos sugeridos cuando no hay búsqueda
   const suggestedProducts = searchTerm ? filteredProducts : filteredProducts.slice(0, 4);
 
   const addItem = (product: Product) => {
-    const existingItem = selectedItems.find(
-      (item) => item.product_id === product.id
-    );
+    const existingItem = selectedItems.find((item) => item.product_id === product.id);
     if (existingItem) {
       setSelectedItems(
         selectedItems.map((item) =>
@@ -83,6 +92,7 @@ export default function NewSaleModal({ onClose, onSave }: Props) {
           unit_price: product.sale_price,
           type: product.type as 'sealed' | 'prepared',
           custom_price: false,
+          extras: [],
         },
       ]);
     }
@@ -90,6 +100,13 @@ export default function NewSaleModal({ onClose, onSave }: Props) {
 
   const removeItem = (itemId: string) => {
     setSelectedItems(selectedItems.filter((item) => item.id !== itemId));
+    // Limpiar estados del formulario extra asociados al item
+    const newVisibility = { ...extraFormVisibility };
+    delete newVisibility[itemId];
+    setExtraFormVisibility(newVisibility);
+    const newFields = { ...extraFormFields };
+    delete newFields[itemId];
+    setExtraFormFields(newFields);
   };
 
   const updateItemQuantity = (itemId: string, quantity: number) => {
@@ -100,6 +117,16 @@ export default function NewSaleModal({ onClose, onSave }: Props) {
     setSelectedItems(
       selectedItems.map((item) =>
         item.id === itemId ? { ...item, quantity } : item
+      )
+    );
+  };
+
+  // Función para establecer directamente la cantidad
+  const setItemQuantity = (itemId: string, quantity: string) => {
+    const numValue = quantity === '' ? 1 : parseInt(quantity);
+    setSelectedItems(
+      selectedItems.map((item) =>
+        item.id === itemId ? { ...item, quantity: numValue } : item
       )
     );
   };
@@ -115,10 +142,81 @@ export default function NewSaleModal({ onClose, onSave }: Props) {
     );
   };
 
-  const total = selectedItems.reduce(
-    (sum, item) => sum + item.quantity * item.unit_price,
-    0
-  );
+  // Funciones para manejar el formulario de extras
+  const toggleExtraForm = (itemId: string) => {
+    setExtraFormVisibility((prev) => ({ ...prev, [itemId]: !prev[itemId] }));
+    // Inicializar los campos si aún no existen
+    setExtraFormFields((prev) => ({
+      ...prev,
+      [itemId]: prev[itemId] || { description: '', quantity: 1, cost: '' },
+    }));
+  };
+
+  const getExtraField = (itemId: string, field: 'description' | 'quantity' | 'cost') => {
+    return extraFormFields[itemId]?.[field] ?? (field === 'quantity' ? 1 : field === 'cost' ? '' : '');
+  };
+
+  const updateExtraField = (
+    itemId: string,
+    field: 'description' | 'quantity' | 'cost',
+    value: string | number
+  ) => {
+    setExtraFormFields((prev) => ({
+      ...prev,
+      [itemId]: { ...prev[itemId], [field]: value },
+    }));
+  };
+
+  const addExtraToItem = (itemId: string) => {
+    const formFields = extraFormFields[itemId];
+    if (!formFields || !formFields.description || formFields.quantity <= 0 || formFields.cost === '' || formFields.cost <= 0) {
+      toast.error('Completa correctamente los datos del extra. Asegúrate de ingresar un precio mayor a 0.');
+      return;
+    }
+    const newExtra: Extra = {
+      id: crypto.randomUUID(),
+      description: formFields.description,
+      quantity: formFields.quantity,
+      cost: Number(formFields.cost),
+    };
+    setSelectedItems((prev) =>
+      prev.map((item) => {
+        if (item.id === itemId) {
+          return { ...item, extras: [...(item.extras || []), newExtra] };
+        }
+        return item;
+      })
+    );
+    // Reiniciar los campos del extra para este item
+    setExtraFormFields((prev) => ({
+      ...prev,
+      [itemId]: { description: '', quantity: 1, cost: '' },
+    }));
+    toast.success('Extra agregado');
+  };
+
+  // Función para eliminar un extra
+  const removeExtra = (itemId: string, extraId: string) => {
+    setSelectedItems((prev) =>
+      prev.map((item) => {
+        if (item.id === itemId) {
+          return { 
+            ...item, 
+            extras: (item.extras || []).filter(extra => extra.id !== extraId) 
+          };
+        }
+        return item;
+      })
+    );
+    toast.success('Extra eliminado');
+  };
+
+  // Cálculo total incluyendo extras
+  const total = selectedItems.reduce((sum, item) => {
+    const productTotal = item.quantity * item.unit_price;
+    const extrasTotal = item.extras?.reduce((exSum, extra) => exSum + extra.quantity * extra.cost, 0) || 0;
+    return sum + productTotal + extrasTotal;
+  }, 0);
 
   const handleNext = () => {
     if (selectedItems.length === 0) {
@@ -142,7 +240,7 @@ export default function NewSaleModal({ onClose, onSave }: Props) {
         items: selectedItems,
         total,
         status: 'completed',
-        club: mainClub.id, // Asociar la venta al club activo
+        club: mainClub.id,
         client_id: selectedClient ? (selectedClient.id || selectedClient._id) : null,
         clientTime: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString(),
         clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -150,10 +248,8 @@ export default function NewSaleModal({ onClose, onSave }: Props) {
 
       console.log('Creating sale:', saleData);
 
-      // Conexión al backend: POST /api/sales
       await axiosInstance.post(`${API_BASE_URL}/api/sales`, saleData);
 
-      // Actualizar el total gastado y la última compra del cliente seleccionado (si existe)
       if (selectedClient && (selectedClient.id || selectedClient._id)) {
         const clientId = selectedClient.id || selectedClient._id;
         await axiosInstance.patch(`${API_BASE_URL}/api/clients/${clientId}`, {
@@ -243,68 +339,150 @@ export default function NewSaleModal({ onClose, onSave }: Props) {
                   {selectedItems.map((item) => {
                     const product = products.find((p) => p.id === item.product_id);
                     return (
-                      <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 border-b pb-2">
-                        <div className="flex items-center">
-                          {product?.type === 'sealed' ? (
-                            <Package className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mr-2 flex-shrink-0" />
-                          ) : (
-                            <Coffee className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mr-2 flex-shrink-0" />
-                          )}
-                          <span className="text-xs sm:text-sm font-medium truncate max-w-[120px] sm:max-w-full">
-                            {product?.name}
-                          </span>
+                      <div key={item.id} className="border-b pb-2 mb-2">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center">
+                            {product?.type === 'sealed' ? (
+                              <Package className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mr-2" />
+                            ) : (
+                              <Coffee className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mr-2" />
+                            )}
+                            <span className="text-xs sm:text-sm font-medium truncate max-w-[120px] sm:max-w-full">
+                              {product?.name} x {item.quantity}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateItemQuantity(item.id, item.quantity - 1);
+                                }}
+                                className="px-2 py-1 border rounded-l bg-gray-100 text-sm"
+                              >
+                                -
+                              </button>
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                value={item.quantity}
+                                onChange={(e) => setItemQuantity(item.id, e.target.value)}
+                                onBlur={(e) => {
+                                  const value = parseInt(e.target.value);
+                                  if (isNaN(value) || value <= 0) {
+                                    updateItemQuantity(item.id, 1);
+                                  }
+                                }}
+                                className="w-12 text-center border-t border-b text-sm"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateItemQuantity(item.id, item.quantity + 1);
+                                }}
+                                className="px-2 py-1 border rounded-r bg-gray-100 text-sm"
+                              >
+                                +
+                              </button>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <DollarSign className="h-4 w-4 text-gray-400" />
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={item.unit_price}
+                                onChange={(e) => updateItemPrice(item.id, parseFloat(e.target.value) || 0)}
+                                className="w-20 border rounded text-sm px-1"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeItem(item.id);
+                              }}
+                              className="text-red-500 hover:text-red-600"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex items-center flex-wrap sm:flex-nowrap justify-end sm:justify-between gap-2 w-full sm:w-auto">
-                          <div className="flex items-center">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                updateItemQuantity(item.id, item.quantity - 1);
-                              }}
-                              className="px-1 sm:px-2 py-1 border rounded-l bg-gray-100 text-xs sm:text-sm"
-                            >
-                              -
-                            </button>
-                            <input
-                              type="number"
-                              min="1"
-                              value={item.quantity}
-                              onChange={(e) => updateItemQuantity(item.id, parseInt(e.target.value) || 1)}
-                              className="w-10 sm:w-16 px-1 sm:px-2 py-1 border-t border-b text-center text-xs sm:text-sm"
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                updateItemQuantity(item.id, item.quantity + 1);
-                              }}
-                              className="px-1 sm:px-2 py-1 border rounded-r bg-gray-100 text-xs sm:text-sm"
-                            >
-                              +
-                            </button>
-                          </div>
-                          <div className="flex items-center">
-                            <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400" />
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={item.unit_price}
-                              onChange={(e) => updateItemPrice(item.id, parseFloat(e.target.value) || 0)}
-                              className="w-16 sm:w-20 px-1 sm:px-2 py-1 border rounded text-xs sm:text-sm"
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          </div>
+
+                        <div className="mt-2 ml-6">
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeItem(item.id);
-                            }}
-                            className="text-red-500 hover:text-red-600"
+                            className="text-sm text-blue-600 underline"
+                            onClick={() => toggleExtraForm(item.id)}
                           >
-                            <X className="h-4 w-4 sm:h-5 sm:w-5" />
+                            {extraFormVisibility[item.id] ? 'Ocultar formulario extra' : 'Agregar extra'}
                           </button>
                         </div>
+
+                        {extraFormVisibility[item.id] && (
+                          <div className="mt-2 ml-6 p-3 border rounded bg-gray-50">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700">Descripción</label>
+                                <input
+                                  type="text"
+                                  placeholder="Ej: Salsa extra"
+                                  value={getExtraField(item.id, 'description')}
+                                  onChange={(e) => updateExtraField(item.id, 'description', e.target.value)}
+                                  className="mt-1 block w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700">Cantidad</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={getExtraField(item.id, 'quantity')}
+                                  onChange={(e) => updateExtraField(item.id, 'quantity', e.target.value)}
+                                  className="mt-1 block w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700">Precio</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  value={getExtraField(item.id, 'cost')}
+                                  onChange={(e) => updateExtraField(item.id, 'cost', e.target.value)}
+                                  className="mt-1 block w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                />
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => addExtraToItem(item.id)}
+                              className="mt-3 bg-green-500 hover:bg-green-600 text-white px-3 py-1 text-sm rounded"
+                            >
+                              Agregar Extra
+                            </button>
+                          </div>
+                        )}
+
+                        {item.extras && item.extras.length > 0 && (
+                          <div className="mt-2 ml-6">
+                            {item.extras.map((extra) => (
+                              <div key={extra.id} className="flex justify-between text-sm py-1 border-b">
+                                <span>{extra.description} x {extra.quantity}</span>
+                                <div className="flex items-center">
+                                  <span className="mr-2">${(extra.quantity * extra.cost).toFixed(2)}</span>
+                                  <button 
+                                    onClick={() => removeExtra(item.id, extra.id)}
+                                    className="text-red-500 hover:text-red-600"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -318,12 +496,11 @@ export default function NewSaleModal({ onClose, onSave }: Props) {
           </div>
         ) : (
           <div className="p-3 sm:p-4 max-h-[70vh] overflow-y-auto">
-            {/* Si se ha seleccionado un cliente se muestra un badge */}
             {selectedClient && (
               <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-gray-50 border rounded-lg">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center">
-                    <User className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 mr-2 flex-shrink-0" />
+                    <User className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 mr-2" />
                     <div className="min-w-0">
                       <div className="font-medium text-xs sm:text-sm truncate">
                         Cliente: {selectedClient.name} 🏷️ {getClientTypeLabel(selectedClient.type)}
@@ -335,33 +512,45 @@ export default function NewSaleModal({ onClose, onSave }: Props) {
                   </div>
                   <button 
                     onClick={() => setSelectedClient(null)}
-                    className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 ml-2 flex-shrink-0"
+                    className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 ml-2"
                   >
                     Cambiar
                   </button>
                 </div>
               </div>
             )}
-
-            {/* Selector de cliente */}
             {!selectedClient && (
               <ClientSelector 
                 onSelectClient={setSelectedClient} 
                 selectedClient={selectedClient} 
               />
             )}
-            
             <div className="mt-3 sm:mt-4 border rounded-lg p-3 sm:p-4">
               <h4 className="text-base sm:text-lg font-medium mb-2 sm:mb-4">Resumen de Venta</h4>
               <div className="space-y-2">
                 {selectedItems.map((item) => {
                   const product = products.find(p => p.id === item.product_id);
                   return (
-                    <div key={item.id} className="flex justify-between text-xs sm:text-sm">
+                    <div key={item.id} className="flex justify-between text-sm">
                       <div className="truncate max-w-[65%]">
                         {product?.name} x {item.quantity}
+                        {item.extras && item.extras.length > 0 && (
+                          <div className="ml-2 text-gray-600">
+                            {item.extras.map((extra) => (
+                              <div key={extra.id} className="flex justify-between">
+                                <span className="text-xs">{extra.description} x {extra.quantity}</span>
+                                <span className="text-xs">${(extra.quantity * extra.cost).toFixed(2)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      <div>${(item.quantity * item.unit_price).toFixed(2)}</div>
+                      <div>
+                        ${(
+                          item.quantity * item.unit_price +
+                          (item.extras?.reduce((acc, extra) => acc + extra.quantity * extra.cost, 0) || 0)
+                        ).toFixed(2)}
+                      </div>
                     </div>
                   );
                 })}
@@ -378,7 +567,7 @@ export default function NewSaleModal({ onClose, onSave }: Props) {
           {step === 1 ? (
             <button
               type="button"
-              className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-3 py-2 sm:px-4 sm:py-2 bg-[#2A5C9A] text-sm font-medium text-white hover:bg-[#1e4474] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mb-2 sm:mb-0 sm:ml-3 sm:w-auto"
+              className="w-full inline-flex justify-center rounded-md shadow-sm px-3 py-2 sm:px-4 sm:py-2 bg-blue-700 text-sm font-medium text-white hover:bg-blue-800 focus:outline-none"
               onClick={handleNext}
             >
               Continuar
@@ -387,14 +576,14 @@ export default function NewSaleModal({ onClose, onSave }: Props) {
             <>
               <button
                 type="button"
-                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-3 py-2 sm:px-4 sm:py-2 bg-[#28A745] text-sm font-medium text-white hover:bg-[#218838] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 mb-2 sm:mb-0 sm:ml-3 sm:w-auto"
+                className="w-full inline-flex justify-center rounded-md shadow-sm px-3 py-2 sm:px-4 sm:py-2 bg-green-600 text-sm font-medium text-white hover:bg-green-700 focus:outline-none mb-2 sm:mb-0 sm:ml-3"
                 onClick={handleSubmit}
               >
                 Completar Venta
               </button>
               <button
                 type="button"
-                className="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-3 py-2 sm:px-4 sm:py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mb-2 sm:mb-0 sm:ml-0 sm:ml-3 sm:w-auto"
+                className="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-3 py-2 sm:px-4 sm:py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none mb-2 sm:mb-0 sm:ml-3"
                 onClick={handleBack}
               >
                 Atrás
@@ -403,7 +592,7 @@ export default function NewSaleModal({ onClose, onSave }: Props) {
           )}
           <button
             type="button"
-            className="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-3 py-2 sm:px-4 sm:py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:w-auto"
+            className="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-3 py-2 sm:px-4 sm:py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
             onClick={onClose}
           >
             Cancelar
@@ -413,6 +602,8 @@ export default function NewSaleModal({ onClose, onSave }: Props) {
     </div>
   );
 }
+
+
 
 
 

@@ -1,5 +1,6 @@
 // Sales.ts
 export interface SaleItem {
+    extras: boolean;
     id: string;
     product_id: string;
     quantity: number;

@@ -1,4 +1,3 @@
-//SalesPage.tsx
 import { useState, useEffect } from 'react';
 import { Plus, Filter, Download, Calendar, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import SalesList from './SalesList';
@@ -42,6 +41,18 @@ function getDefaultPeriod() {
     end: lastDay.toISOString().split('T')[0]
   };
 }
+
+// Función auxiliar para obtener el nombre del producto
+// Si productId es nulo, se utiliza fallbackName
+const getName = (productId: string | null, fallbackName?: string, products?: Record<string, Product>) => {
+  if (!productId && fallbackName) {
+    return fallbackName;
+  }
+  if (productId && products && productId in products) {
+    return products[productId].name;
+  }
+  return fallbackName || 'Producto desconocido';
+};
 
 export default function SalesPage() {
   // Extraer club activo, token y usuario desde localStorage
@@ -174,7 +185,7 @@ export default function SalesPage() {
     const matchesSearch =
       searchTerm === '' ||
       sale.items.some(item => {
-        const productName = products[item.product_id]?.name || '';
+        const productName = getName(item.product_id, (item as any).product_name, products);
         return productName.toLowerCase().includes(searchTerm.toLowerCase());
       });
     const matchesType =
@@ -200,7 +211,27 @@ export default function SalesPage() {
     setCurrentPage(pageNumber);
   };
 
-  // Función para exportar a Excel con datos de cabecera y ventas
+  // Función auxiliar para armar la información de productos y extras
+  const getProductsInfo = (sale: Sale): { products: string; extras: string } => {
+    const productsArr = sale.items.map(item => {
+      const productName = getName(item.product_id, (item as any).product_name, products);
+      return `${productName} x${item.quantity}`;
+    });
+    const extrasArr = sale.items
+      .map(item => {
+        if (Array.isArray(item.extras) && item.extras.length > 0) {
+          const extraInfo = item.extras
+            .map(e => `${e.description} x${e.quantity} ($${(e.quantity * e.cost).toFixed(2)})`)
+            .join(', ');
+          return extraInfo;
+        }
+        return '';
+      })
+      .filter(info => info !== '');
+    return { products: productsArr.join('; '), extras: extrasArr.join('; ') };
+  };
+
+  // Función para exportar a Excel con datos de cabecera, ventas, extras y quién generó la venta
   const exportToExcel = () => {
     const reportDate = new Date().toLocaleString();
     const header = [
@@ -211,19 +242,21 @@ export default function SalesPage() {
       [`Período: ${dateRange.start} - ${dateRange.end}`],
       [] // fila en blanco
     ];
+    const tableHeader = [['Fecha', 'Productos', 'Extras', 'Total', 'Cliente', 'Generado por']];
     const salesData = filteredSales.map(sale => {
-      const productsInfo = sale.items
-        .map(item => {
-          const productName = products[item.product_id]?.name || 'Producto desconocido';
-          return `${productName} x${item.quantity}`;
-        })
-        .join('; ');
+      const { products: productsInfo, extras: extrasInfo } = getProductsInfo(sale);
       const clientName = sale.client_id
         ? (clients[sale.client_id]?.name || 'Sin cliente')
         : 'Sin cliente';
-      return [new Date(sale.created_at).toLocaleDateString(), productsInfo, sale.total.toFixed(2), clientName];
+      return [
+        new Date(sale.created_at).toLocaleDateString(),
+        productsInfo,
+        extrasInfo,
+        sale.total.toFixed(2),
+        clientName,
+        sale.created_by_name || 'Desconocido'
+      ];
     });
-    const tableHeader = [['Fecha', 'Productos', 'Total', 'Cliente']];
     const wsData = [...header, ...tableHeader, ...salesData];
     const ws = XLSX.utils.aoa_to_sheet(wsData);
     const wb = XLSX.utils.book_new();
@@ -231,7 +264,7 @@ export default function SalesPage() {
     XLSX.writeFile(wb, `reporte_ventas_${dateRange.start}_${dateRange.end}.xlsx`);
   };
 
-  // Función para exportar a PDF con formato de tabla y total de ventas
+  // Función para exportar a PDF con formato de tabla que incluya extras y quién generó la venta
   const exportToPDF = () => {
     const doc = new jsPDF();
     const reportDate = new Date().toLocaleString();
@@ -242,22 +275,19 @@ export default function SalesPage() {
     doc.text(`Club: ${activeClub.clubName || activeClub.name || 'Club'}`, 14, 34);
     doc.text(`Fecha de creación: ${reportDate}`, 14, 40);
     doc.text(`Período: ${dateRange.start} - ${dateRange.end}`, 14, 46);
-    const tableColumn = ['Fecha', 'Productos', 'Total', 'Cliente'];
+    const tableColumn = ['Fecha', 'Productos', 'Extras', 'Total', 'Cliente', 'Generado por'];
     const tableRows = filteredSales.map(sale => {
-      const productsInfo = sale.items
-        .map(item => {
-          const productName = products[item.product_id]?.name || 'Producto desconocido';
-          return `${productName} x${item.quantity}`;
-        })
-        .join('; ');
+      const { products: productsInfo, extras: extrasInfo } = getProductsInfo(sale);
       const clientName = sale.client_id
         ? (clients[sale.client_id]?.name || 'Sin cliente')
         : 'Sin cliente';
       return [
         new Date(sale.created_at).toLocaleDateString(),
         productsInfo,
+        extrasInfo,
         sale.total.toFixed(2),
-        clientName
+        clientName,
+        sale.created_by_name || 'Desconocido'
       ];
     });
     autoTable(doc, {
@@ -432,6 +462,7 @@ export default function SalesPage() {
     </div>
   );
 }
+
 
 
 

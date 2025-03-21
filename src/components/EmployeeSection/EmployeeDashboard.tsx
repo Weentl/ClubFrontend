@@ -27,6 +27,21 @@ import { useAuthFetch } from '../utils/authFetch';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+function formatLocalDate(dateStr: string): string {
+  const dateStrLocalTime = dateStr.endsWith('Z') ? dateStr.slice(0, -1) : dateStr;
+  const date = new Date(dateStrLocalTime);
+  const options: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hour12: true,
+  };
+  return date.toLocaleString(undefined, options);
+}
+
 export default function EmployeeDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -454,12 +469,9 @@ export default function EmployeeDashboard() {
                     <div key={saleId} className="p-4 hover:bg-gray-50">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-semibold text-gray-800">Venta #{saleId.toString().slice(0, 5)}</p>
+                          <p className="text-sm font-semibold text-gray-800">Venta #{saleId.toString().slice(0, 8)}</p>
                           <p className="text-xs text-gray-500 mt-1">
-                            {new Date(sale.created_at).toLocaleString(undefined, {
-                              dateStyle: 'short',
-                              timeStyle: 'short'
-                            })}
+                            {formatLocalDate(sale.created_at)}
                           </p>
                         </div>
                         <div className="text-right">

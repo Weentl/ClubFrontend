@@ -21,7 +21,6 @@ export default function ClientHistoryModal({ client, onClose }: Props) {
   const [loading, setLoading] = useState(true);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
-  
 
   // Usar client.id o client._id según corresponda
   const clientId = client.id || client._id;
@@ -41,7 +40,6 @@ export default function ClientHistoryModal({ client, onClose }: Props) {
 
   const loadClientSales = async () => {
     try {
-      // Se usa el identificador correcto del cliente
       const response = await axiosInstance.get(`${API_BASE_URL}/api/clients/${clientId}/sales`);
       setSales(response.data);
     } catch (error) {
@@ -53,7 +51,6 @@ export default function ClientHistoryModal({ client, onClose }: Props) {
 
   const loadProducts = async () => {
     try {
-      // Si el endpoint de productos requiere filtrar por club, se agrega el query parameter
       const clubQuery = mainClub && mainClub.id ? `?club=${mainClub.id}` : '';
       const response = await axiosInstance.get(`${API_BASE_URL}/api/products${clubQuery}`);
       // Mapear _id a id en caso de ser necesario
@@ -67,9 +64,16 @@ export default function ClientHistoryModal({ client, onClose }: Props) {
     }
   };
 
-  const getProductName = (productId: string) => {
+  /**
+   * Retorna el nombre del producto.
+   * Si productId es nulo o indefinido, se utiliza fallbackName (por ejemplo, el valor guardado en product_name).
+   */
+  const getProductName = (productId: string | null, fallbackName?: string) => {
+    if (!productId && fallbackName) {
+      return fallbackName;
+    }
     const product = products.find(p => p.id === productId);
-    return product ? product.name : 'Producto desconocido';
+    return product ? product.name : (fallbackName || 'Producto desconocido');
   };
 
   const formatDate = (dateString: string) => {
@@ -82,6 +86,22 @@ export default function ClientHistoryModal({ client, onClose }: Props) {
     });
   };
 
+  // Para la tabla de resumen, muestra hasta dos items de la venta, con extras (si existieran)
+  const getItemsInfo = (sale: Sale) => {
+    return sale.items.slice(0, 2).map((item, index) => {
+      // Se utiliza el fallback: si product_id es nulo, se espera que item tenga product_name
+      const productName = getProductName(item.product_id, (item as any).product_name);
+      let info = `${productName} x${item.quantity}`;
+      if (Array.isArray((item as any).extras) && (item as any).extras.length > 0) {
+        const extrasInfo = (item as any).extras
+          .map((e: any) => `${e.description} x${e.quantity} ($${(e.quantity * e.cost).toFixed(2)})`)
+          .join(', ');
+        info += ` [Extras: ${extrasInfo}]`;
+      }
+      return <div key={index}>{info}</div>;
+    });
+  };
+
   // Productos más comprados
   const getMostPurchasedProducts = () => {
     const productCounts: Record<string, { count: number; name: string }> = {};
@@ -89,12 +109,12 @@ export default function ClientHistoryModal({ client, onClose }: Props) {
     sales.forEach(sale => {
       sale.items.forEach(item => {
         const productId = item.product_id;
-        const productName = getProductName(productId);
-        
-        if (!productCounts[productId]) {
-          productCounts[productId] = { count: 0, name: productName };
+        const productName = getProductName(productId, (item as any).product_name);
+        if (!productCounts[productId || 'fallback']) {
+          // Si productId es null, usamos una key especial
+          productCounts[productId || 'fallback'] = { count: 0, name: productName };
         }
-        productCounts[productId].count += item.quantity;
+        productCounts[productId || 'fallback'].count += item.quantity;
       });
     });
     
@@ -255,11 +275,7 @@ export default function ClientHistoryModal({ client, onClose }: Props) {
                         {formatDate(sale.created_at)}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
-                        {sale.items.slice(0, 2).map((item, index) => (
-                          <div key={index}>
-                            {getProductName(item.product_id)} x{item.quantity}
-                          </div>
-                        ))}
+                        {getItemsInfo(sale)}
                         {sale.items.length > 2 && (
                           <div className="text-xs text-gray-400">
                             +{sale.items.length - 2} más
@@ -310,11 +326,26 @@ export default function ClientHistoryModal({ client, onClose }: Props) {
                 <p className="text-sm text-gray-500 mb-2">Productos</p>
                 <div className="space-y-2">
                   {selectedSale.items.map((item, index) => (
-                    <div key={index} className="flex justify-between">
-                      <div>
-                        {getProductName(item.product_id)} x{item.quantity}
+                    <div key={index}>
+                      <div className="flex justify-between">
+                        <span>
+                          {getProductName(item.product_id, (item as any).product_name)} x{item.quantity}
+                        </span>
+                        <span>
+                          ${(item.quantity * item.unit_price).toFixed(2)}
+                        </span>
                       </div>
-                      <div>${(item.quantity * item.unit_price).toFixed(2)}</div>
+                      {Array.isArray((item as any).extras) && (item as any).extras.length > 0 && (
+                        <div className="ml-4 text-xs text-gray-500">
+                          Extras: {(item as any).extras.map((e: any, idx: number) => (
+                            <span key={idx}>
+                              {e.description} x{e.quantity} ($
+                              {(e.quantity * e.cost).toFixed(2)})
+                              {idx < (item as any).extras.length - 1 ? ', ' : ''}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -339,5 +370,3 @@ export default function ClientHistoryModal({ client, onClose }: Props) {
     </div>
   );
 }
-
-

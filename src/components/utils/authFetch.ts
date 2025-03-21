@@ -9,6 +9,7 @@ export function useAuthFetch() {
 
   async function authFetch(url: string, options: RequestInit = {}) {
     const token = localStorage.getItem('token');
+    console.log('Token:', token);
     
     // Clonar headers existentes o crear nuevo objeto
     const headers = new Headers(options.headers || {});
@@ -16,12 +17,16 @@ export function useAuthFetch() {
     // Solo agregar Content-Type si no es FormData
     if (!(options.body instanceof FormData)) {
       headers.set('Content-Type', 'application/json');
+      console.log('Headers:', headers);
     }
     
     // Agregar Authorization si existe el token
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
+      console.log('Headers:', headers);
     }
+
+
 
     const response = await fetch(url, {
       ...options,

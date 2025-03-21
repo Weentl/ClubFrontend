@@ -1,4 +1,3 @@
-// SalesList.tsx
 import { Package, Coffee, User } from 'lucide-react';
 import type { Sale } from '../types/sales';
 import type { Product } from '../types/products';
@@ -26,6 +25,24 @@ function formatLocalDate(dateStr: string): string {
   return date.toLocaleString(undefined, options);
 }
 
+/**
+ * Función que retorna el nombre del producto.
+ * Si productId es nulo, se utiliza fallbackName (almacenado en product_name).
+ */
+const getProductName = (productId: string | null, fallbackName?: string) => {
+  if (!productId && fallbackName) {
+    return fallbackName;
+  }
+  const product = fallbackName ? undefined : undefined; // Evitamos acceder a fallback aquí
+  // Se espera que el objeto de producto se encuentre en 'products', pero como este componente recibe
+  // un record de productos, se usa el productId para acceder.
+  // Si no se encuentra, se utiliza fallbackName.
+  return productId && productId in product ? product[productId].name : (fallbackName || 'Producto desconocido');
+};
+
+// Dado que la función getProductName necesita el objeto "products", lo recibiremos en el componente.
+// Por ello, se define la función getProductName dentro del componente SalesList.
+
 export default function SalesList({ sales, loading, products, clients }: Props) {
   const getClientTypeIcon = (type: string) => {
     switch (type) {
@@ -34,6 +51,15 @@ export default function SalesList({ sales, loading, products, clients }: Props) 
       case 'wholesale': return '🟣';
       default: return '⚪';
     }
+  };
+
+  // Función interna para obtener el nombre del producto, usando products y fallback
+  const getName = (productId: string | null, fallbackName?: string) => {
+    if (!productId && fallbackName) {
+      return fallbackName;
+    }
+    const prod = productId ? products[productId] : null;
+    return prod ? prod.name : (fallbackName || 'Producto desconocido');
   };
 
   if (loading) {
@@ -70,7 +96,6 @@ export default function SalesList({ sales, loading, products, clients }: Props) 
                 <p className="text-sm text-gray-500">
                   {formatLocalDate(sale.created_at)}
                 </p>
-                {/* Mostrar el nombre de quien creó la venta */}
                 {sale.created_by_name && (
                   <p className="text-xs text-gray-500">
                     Venta realizada por: {sale.created_by_name}
@@ -92,29 +117,40 @@ export default function SalesList({ sales, loading, products, clients }: Props) 
             <div className="mt-2">
               <div className="space-y-2">
                 {sale.items.map(item => {
-                  const product = products[item.product_id];
+                  const name = getName(item.product_id, (item as any).product_name);
                   return (
-                    <div key={item.id} className="flex items-center text-sm">
-                      {item.type === 'sealed' ? (
-                        <Package className="h-4 w-4 text-gray-400 mr-2" />
-                      ) : (
-                        <Coffee className="h-4 w-4 text-gray-400 mr-2" />
+                    <div key={item.id} className="mb-2">
+                      <div className="flex items-center text-sm">
+                        {item.type === 'sealed' ? (
+                          <Package className="h-4 w-4 text-gray-400 mr-2" />
+                        ) : (
+                          <Coffee className="h-4 w-4 text-gray-400 mr-2" />
+                        )}
+                        <span className="flex-1">
+                          {name} x {item.quantity}
+                        </span>
+                        <span className="text-gray-500">
+                          ${(item.quantity * item.unit_price).toFixed(2)}
+                        </span>
+                      </div>
+                      {Array.isArray((item as any).extras) && (item as any).extras.length > 0 && (
+                        <div className="ml-6 mt-1 space-y-1">
+                          {(item as any).extras.map(extra => (
+                            <div key={extra.id} className="flex items-center text-xs text-gray-600">
+                              <span className="flex-1">
+                                {extra.description} x {extra.quantity}
+                              </span>
+                              <span>
+                                ${(extra.quantity * extra.cost).toFixed(2)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       )}
-                      <span className="flex-1">
-                        {product?.name} x{item.quantity}
-                      </span>
-                      <span className="text-gray-500">
-                        ${(item.quantity * item.unit_price).toFixed(2)}
-                      </span>
                     </div>
                   );
                 })}
               </div>
-              {sale.status === 'pending_inventory_adjustment' && (
-                <div className="mt-2 text-sm text-yellow-600">
-                  🍳 Ajuste de inventario pendiente
-                </div>
-              )}
             </div>
           </li>
         );
@@ -122,5 +158,7 @@ export default function SalesList({ sales, loading, products, clients }: Props) 
     </ul>
   );
 }
+
+
 
 

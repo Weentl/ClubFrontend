@@ -78,15 +78,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(errorData.message || 'Error al iniciar sesión.');
       }
       const data = await res.json();
-      // Guardamos token y usuario en localStorage
+      console.log('Respuesta del login:', data); // Verifica aquí si existe data.token
+  
+      // Guarda token y usuario en localStorage
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
+  
       if (data.mainClub) {
         localStorage.setItem('mainClub', JSON.stringify(data.mainClub));
         setMainClub(data.mainClub);
       }
       setUser(data.user);
-      // Si es empleado y es su primer inicio, establecemos el flag
       if (data.user.userType === 'employee' && data.user.isFirstLogin) {
         setNeedsPasswordChange(true);
         toast.success('Es tu primer inicio de sesión, debes cambiar tu contraseña.');
@@ -177,6 +179,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       const data = await res.json();
       toast.success('Contraseña actualizada correctamente.');
+      // Opcional: limpiar token y usuario para forzar nuevo login
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('mainClub');
+      setUser(null);
+      setMainClub(null);
       return data;
     } catch (error: any) {
       toast.error(error.message);
