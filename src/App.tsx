@@ -26,6 +26,7 @@ import SettingsPage from './components/settings/SettingsPage';
 import EmployeeManagement from './components/employees/EmployeeManagement';
 import EmployeeChangePassword from './components/EmployeeSection/EmployeeChangePassword';
 import EmployeeDashboard from './components/EmployeeSection/EmployeeDashboard';
+import LandingPage from './components/landing/LandingPage';
 
 // Componente PrivateRoute genérico
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -64,6 +65,7 @@ function App() {
       <Router>
         <Routes>
           {/* Rutas públicas */}
+          <Route path="/myadclub" element={<LandingPage />} />
           <Route path="/login" element={<LoginForm />} />
           <Route path="/register" element={<RegisterForm />} />
           <Route path="/reset-password" element={<PasswordReset />} />

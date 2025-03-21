@@ -70,7 +70,7 @@ interface KPI {
   title: string;
   value: string | number;
   icon: any;
-  trend?: { value: number; isPositive: boolean };
+  trend?: { value: number; isPositive: boolean } | null;
   color: string;
   description: string; // Añadida descripción para los tooltips
 }
@@ -159,12 +159,28 @@ export default function Dashboard() {
       );
       if (!response.ok) throw new Error('No hay suficientes datos');
       const data = await response.json();
+      console.log('KPIs:', data);
+      const ventasTrend =
+        data.ventasAyer && data.ventasAyer !== 0
+          ? {
+          value: Math.abs(((data.ventasHoy - data.ventasAyer) / data.ventasAyer) * 100),
+          isPositive: data.ventasHoy >= data.ventasAyer,
+        }
+          : null;
+
+      const gananciasTrend =
+        data.gananciasMesPasado && data.gananciasMesPasado !== 0
+          ? {
+          value: Math.abs(((data.gananciasMensuales - data.gananciasMesPasado) / data.gananciasMesPasado) * 100),
+          isPositive: data.gananciasMensuales >= data.gananciasMesPasado,
+        }
+          : null;
       const kpis = [
         {
           title: 'Ventas Hoy',
           value: `$${data.ventasHoy.toFixed(2)}`,
           icon: ShoppingCart,
-          trend: { value: 12, isPositive: true },
+          trend:  ventasTrend,
           color: 'blue',
           description: 'Total de todas las ventas realizadas hoy. Una cantidad más alta que ayer indica un buen día de ventas.'
         },
@@ -179,7 +195,7 @@ export default function Dashboard() {
           title: 'Ganancias Mensuales',
           value: `$${data.gananciasMensuales.toFixed(2)}`,
           icon: DollarSign,
-          trend: { value: 8, isPositive: true },
+          trend: gananciasTrend,
           color: 'green',
           description: 'Dinero que queda después de restar todos los gastos a las ventas de este mes. Es lo que realmente gana su negocio.'
         },
@@ -536,7 +552,7 @@ export default function Dashboard() {
                     </p>
                     {kpi.trend && (
                       <p className={`mt-1 text-sm ${kpi.trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                        {kpi.trend.isPositive ? '↑' : '↓'} {kpi.trend.value}%
+                        {kpi.trend.isPositive ? '↑' : '↓'} {parseFloat(kpi.trend.value.toFixed(2))}%
                       </p>
                     )}
                   </div>
